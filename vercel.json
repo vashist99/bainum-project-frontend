@@ -1,22 +1,8 @@
 {
-    "version": 2,
-    "builds": [
-      {
-        "src": "mockup1/package.json",
-        "use": "@vercel/static-build",
-        "config": {
-          "distDir": "dist"
-        }
-      }
-    ],
-    "rewrites": [
-      {
-        "source": "/(.*)",
-        "destination": "/mockup1/index.html"
-      }
-    ],
-    "env": {
-      "VITE_API_URL": "https://bainum-project-backend.onrender.com"
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
-  }
-  
+  ]
+}
