@@ -55,7 +55,7 @@ test.describe('Login Flow', () => {
     expect(isLoggedIn).toBeTruthy();
   });
 
-  test('should persist login state on page reload', async ({ page, context }) => {
+  test('should persist login state on page reload', async ({ page }) => {
     const testEmail = process.env.TEST_ADMIN_EMAIL || 'admin@example.com';
     const testPassword = process.env.TEST_ADMIN_PASSWORD || 'password123';
     

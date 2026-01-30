@@ -120,7 +120,7 @@ const DataPage = () => {
         
         // Show the link in a more visible way
         setTimeout(() => {
-          const shareLink = prompt(
+          prompt(
             "Email not configured. Please copy and share this invitation link with the parent:\n\n" + link,
             link
           );

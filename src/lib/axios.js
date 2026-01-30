@@ -59,7 +59,7 @@ apiClient.interceptors.request.use(
         let token = savedUser;
         try {
           token = JSON.parse(savedUser);
-        } catch (e) {
+        } catch {
           // If parsing fails, it's already a string
           token = savedUser;
         }

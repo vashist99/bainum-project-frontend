@@ -15,7 +15,7 @@ const ChildDataPage = () => {
   // Prevent parents from navigating away using browser back button
   useEffect(() => {
     if (isParent() && user?.childId) {
-      const handlePopState = (e) => {
+      const handlePopState = () => {
         // Prevent navigation away from child's page
         window.history.pushState(null, '', `/data/child/${user.childId}`);
         toast.info("You can only view your child's data page");
