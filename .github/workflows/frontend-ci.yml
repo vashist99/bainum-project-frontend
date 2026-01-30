@@ -13,20 +13,21 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Setup Node.js (with cache if package-lock.json exists)
-      id: setup-node
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: ${{ hashFiles('package-lock.json') != '' && 'npm' || '' }}
-        cache-dependency-path: ${{ hashFiles('package-lock.json') != '' && 'package-lock.json' || '' }}
-      continue-on-error: true
+    - name: Check for package-lock.json
+      id: check-lockfile
+      run: |
+        if [ -f package-lock.json ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
     
-    - name: Setup Node.js (fallback without cache)
-      if: steps.setup-node.outcome == 'failure'
+    - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: ${{ steps.check-lockfile.outputs.exists == 'true' && 'npm' || '' }}
+        cache-dependency-path: ${{ steps.check-lockfile.outputs.exists == 'true' && 'package-lock.json' || '' }}
     
     - name: Install dependencies
       run: |
