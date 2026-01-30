@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "description": "Bainum Project Frontend - Testing Vercel deployment with VERCEL_ORG_ID",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
