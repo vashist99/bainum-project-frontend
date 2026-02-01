@@ -10,6 +10,8 @@ const EditTeacherForm = () => {
   const { id } = useParams();
   const [loading, setLoading] = useState(false);
   const [loadingTeacher, setLoadingTeacher] = useState(true);
+  const [centers, setCenters] = useState([]);
+  const [loadingCenters, setLoadingCenters] = useState(true);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -18,6 +20,23 @@ const EditTeacherForm = () => {
     dateOfBirth: "",
     center: "",
   });
+
+  // Fetch centers from database
+  useEffect(() => {
+    const fetchCenters = async () => {
+      try {
+        setLoadingCenters(true);
+        const response = await axios.get("/api/centers");
+        setCenters(response.data.centers || []);
+      } catch (error) {
+        console.error("Error fetching centers:", error);
+        setCenters([]);
+      } finally {
+        setLoadingCenters(false);
+      }
+    };
+    fetchCenters();
+  }, []);
 
   // Load teacher data
   useEffect(() => {
@@ -237,11 +256,24 @@ const EditTeacherForm = () => {
                   className="select select-bordered select-primary w-full"
                   value={formData.center}
                   onChange={handleInputChange}
+                  disabled={loadingCenters}
                 >
-                  <option value="">Select a center</option>
-                  <option value="Center A">Center A</option>
-                  <option value="Center B">Center B</option>
+                  <option value="">
+                    {loadingCenters ? "Loading centers..." : "Select a center"}
+                  </option>
+                  {centers.map((center) => (
+                    <option key={center._id} value={center.name}>
+                      {center.name}
+                    </option>
+                  ))}
                 </select>
+                {!loadingCenters && centers.length === 0 && (
+                  <label className="label">
+                    <span className="label-text-alt text-warning">
+                      No centers available. Please add centers first.
+                    </span>
+                  </label>
+                )}
               </div>
 
               {/* Submit Button */}
