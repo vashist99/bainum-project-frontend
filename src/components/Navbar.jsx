@@ -102,13 +102,6 @@ const Navbar = () => {
             </li>
             <div className="divider my-1"></div>
             <li>
-              <a className="justify-between">
-                Profile
-                <span className="badge">New</span>
-              </a>
-            </li>
-            <li><a>Settings</a></li>
-            <li>
               <a onClick={handleLogout} className="flex items-center gap-2 text-error">
                 <LogOut className="w-4 h-4" />
                 Logout
