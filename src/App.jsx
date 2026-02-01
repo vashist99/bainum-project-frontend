@@ -3,7 +3,9 @@ import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import TeachersPage from './pages/TeachersPage';
 import AddTeacherForm from './pages/AddTeacherForm';
+import EditTeacherForm from './pages/EditTeacherForm';
 import AddChildForm from './pages/AddChildForm';
+import EditChildForm from './pages/EditChildForm';
 import DataPage from './pages/DataPage';
 import AddDataForm from './pages/AddDataForm';
 import ChildDataPage from './pages/ChildDataPage';
@@ -32,7 +34,13 @@ const App = () => {
           <AddTeacherForm />
         </ProtectedRoute>
       } />
+      <Route path="/teachers/edit/:id" element={
+        <ProtectedRoute requiredRole="admin">
+          <EditTeacherForm />
+        </ProtectedRoute>
+      } />
       <Route path="/children/add" element={<AddChildForm />} />
+      <Route path="/children/edit/:id" element={<EditChildForm />} />
       <Route path="/data" element={
         <ProtectedRoute excludeRoles={['parent']}>
           <DataPage />
