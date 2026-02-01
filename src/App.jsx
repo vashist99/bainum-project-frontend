@@ -4,6 +4,9 @@ import HomePage from './pages/HomePage';
 import TeachersPage from './pages/TeachersPage';
 import AddTeacherForm from './pages/AddTeacherForm';
 import EditTeacherForm from './pages/EditTeacherForm';
+import CentersPage from './pages/CentersPage';
+import AddCenterForm from './pages/AddCenterForm';
+import EditCenterForm from './pages/EditCenterForm';
 import AddChildForm from './pages/AddChildForm';
 import EditChildForm from './pages/EditChildForm';
 import DataPage from './pages/DataPage';
@@ -22,6 +25,21 @@ const App = () => {
       <Route path="/home" element={
         <ProtectedRoute>
           <HomePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/centers" element={
+        <ProtectedRoute requiredRole="admin">
+          <CentersPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/centers/add" element={
+        <ProtectedRoute requiredRole="admin">
+          <AddCenterForm />
+        </ProtectedRoute>
+      } />
+      <Route path="/centers/edit/:id" element={
+        <ProtectedRoute requiredRole="admin">
+          <EditCenterForm />
         </ProtectedRoute>
       } />
       <Route path="/teachers" element={
