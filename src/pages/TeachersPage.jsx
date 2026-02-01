@@ -285,12 +285,17 @@ const TeachersPage = () => {
                             </td>
                             <td onClick={(e) => e.stopPropagation()}>
                               <div className="flex gap-2">
-                                <button className="btn btn-ghost btn-xs">
+                                <button 
+                                  onClick={() => navigate(`/teachers/edit/${teacher._id}`)}
+                                  className="btn btn-ghost btn-xs"
+                                  title="Edit teacher"
+                                >
                                   <Edit className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => handleDelete(teacher._id)}
                                   className="btn btn-ghost btn-xs text-error"
+                                  title="Delete teacher"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
