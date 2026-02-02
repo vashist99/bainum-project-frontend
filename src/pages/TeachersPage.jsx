@@ -8,7 +8,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 const TeachersPage = () => {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [teachers, setTeachers] = useState([]);
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -106,9 +106,60 @@ const TeachersPage = () => {
       return;
     }
 
+    // Verify user is admin
+    if (!isAdmin()) {
+      toast.error("Only administrators can send teacher invitations");
+      return;
+    }
+
     setSendingInvite(true);
 
     try {
+      // Verify user is logged in
+      const savedUser = localStorage.getItem('user');
+      if (!savedUser) {
+        toast.error("Please log in to send invitations");
+        setSendingInvite(false);
+        return;
+      }
+
+      // Debug: Log token info and decoded user (without exposing full token)
+      try {
+        let token = savedUser;
+        try {
+          token = JSON.parse(savedUser);
+        } catch {
+          token = savedUser;
+        }
+        
+        // Decode JWT to see what's in it
+        let decodedUser = null;
+        if (token && typeof token === 'string') {
+          try {
+            const parts = token.split('.');
+            if (parts.length === 3) {
+              const payload = parts[1];
+              decodedUser = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+            }
+          } catch (e) {
+            console.error("Error decoding token:", e);
+          }
+        }
+        
+        console.log("Token check:", {
+          hasToken: !!token,
+          tokenType: typeof token,
+          tokenLength: token?.length,
+          tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
+        });
+        
+        console.log("Decoded user from token:", decodedUser);
+        console.log("Current user from AuthContext:", user);
+        console.log("Is admin check:", isAdmin());
+      } catch (e) {
+        console.error("Error checking token:", e);
+      }
+
       // Prepare invitation data using teacher's existing data
       const invitationData = {
         email: inviteEmail,
@@ -119,8 +170,15 @@ const TeachersPage = () => {
         center: selectedTeacherForInvite.center || "",
       };
 
+      console.log("Sending invitation with data:", {
+        ...invitationData,
+        dateOfBirth: invitationData.dateOfBirth
+      });
+
       // Send invitation - axios interceptor will automatically add the Authorization header
       const response = await axios.post("/api/teacher-invitations/send", invitationData);
+      
+      console.log("Invitation response:", response.data);
 
       // Check if email was sent successfully or if manual sharing is needed
       if (response.data.warning) {
@@ -146,10 +204,22 @@ const TeachersPage = () => {
       setInviteEmail("");
       setSelectedTeacherForInvite(null);
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || "Failed to send invitation. Please try again.";
-      toast.error(errorMessage);
       console.error("Error sending invitation:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      console.error("Error headers:", error.response?.headers);
+      
+      let errorMessage = "Failed to send invitation. Please try again.";
+      
+      if (error.response?.status === 403) {
+        errorMessage = "Access denied. Only admins can send teacher invitations. Please check your login status.";
+      } else if (error.response?.status === 401) {
+        errorMessage = "Authentication failed. Please log out and log back in.";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setSendingInvite(false);
     }
