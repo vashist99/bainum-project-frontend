@@ -307,13 +307,13 @@ const DataPage = () => {
                           <td className="text-base-content/60">-</td>
                           <td>
                             <div className="flex gap-2">
-                              <button
+                            <button
                                 onClick={() => navigate(`/data/child/${child._id || child.id}`)}
-                                className="btn btn-ghost btn-xs"
+                              className="btn btn-ghost btn-xs"
                                 title="View details"
-                              >
-                                View Details
-                              </button>
+                            >
+                              View Details
+                            </button>
                               <button
                                 onClick={() => navigate(`/children/edit/${child._id || child.id}`)}
                                 className="btn btn-ghost btn-xs"

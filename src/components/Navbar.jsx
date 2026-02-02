@@ -41,12 +41,12 @@ const Navbar = () => {
                     Centers
                   </a>
                 </li>
-                <li>
-                  <a href="/teachers" className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    Teachers
-                  </a>
-                </li>
+              <li>
+                <a href="/teachers" className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Teachers
+                </a>
+              </li>
               </>
             )}
             {!isParent() && (
@@ -80,12 +80,12 @@ const Navbar = () => {
                   Centers
                 </a>
               </li>
-              <li>
-                <a href="/teachers" className="btn btn-ghost flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Teachers
-                </a>
-              </li>
+            <li>
+              <a href="/teachers" className="btn btn-ghost flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Teachers
+              </a>
+            </li>
             </>
           )}
           {!isParent() && (
