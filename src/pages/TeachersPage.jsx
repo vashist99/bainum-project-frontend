@@ -109,15 +109,6 @@ const TeachersPage = () => {
     setSendingInvite(true);
 
     try {
-      // Get token from localStorage
-      const savedUser = localStorage.getItem('user');
-      const token = savedUser ? JSON.parse(savedUser) : null;
-
-      if (!token) {
-        toast.error("Please log in to send invitations");
-        return;
-      }
-
       // Prepare invitation data using teacher's existing data
       const invitationData = {
         email: inviteEmail,
@@ -128,12 +119,8 @@ const TeachersPage = () => {
         center: selectedTeacherForInvite.center || "",
       };
 
-      // Send invitation
-      const response = await axios.post("/api/teacher-invitations/send", invitationData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      // Send invitation - axios interceptor will automatically add the Authorization header
+      const response = await axios.post("/api/teacher-invitations/send", invitationData);
 
       // Check if email was sent successfully or if manual sharing is needed
       if (response.data.warning) {
