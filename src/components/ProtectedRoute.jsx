@@ -1,7 +1,7 @@
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router';
 
-const ProtectedRoute = ({ children, requiredRole = null, excludeRoles = [] }) => {
+const ProtectedRoute = ({ children, requiredRole = null, excludeRoles = [], skipParentHomeRedirect = false }) => {
   const { user, hasRole, loading, isParent } = useAuth();
 
   // Show loading while checking authentication
@@ -19,7 +19,7 @@ const ProtectedRoute = ({ children, requiredRole = null, excludeRoles = [] }) =>
   }
 
   // Redirect parents to their child's page if they try to access restricted pages
-  if (isParent() && user?.childId && excludeRoles.length === 0 && !requiredRole) {
+  if (isParent() && user?.childId && excludeRoles.length === 0 && !requiredRole && !skipParentHomeRedirect) {
     return <Navigate to={`/data/child/${user.childId}`} replace />;
   }
 

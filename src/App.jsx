@@ -78,7 +78,7 @@ const App = () => {
         </ProtectedRoute>
       } />
       <Route path="/teachers/:username" element={
-        <ProtectedRoute excludeRoles={['parent']}>
+        <ProtectedRoute skipParentHomeRedirect>
           <TeacherDataDetailPage />
         </ProtectedRoute>
       } />

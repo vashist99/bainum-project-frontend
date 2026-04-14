@@ -16,6 +16,17 @@ const DataPage = () => {
       navigate(`/data/child/${user.childId}`, { replace: true });
     }
   }, [isParent, user, navigate]);
+
+  const [pendingParentAccess, setPendingParentAccess] = useState([]);
+
+  useEffect(() => {
+    if (!isTeacher() || !user) return;
+    axios
+      .get("/api/access/pending-for-teacher")
+      .then((res) => setPendingParentAccess(res.data?.pending || []))
+      .catch(() => setPendingParentAccess([]));
+  }, [isTeacher, user]);
+
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [teachers, setTeachers] = useState([]);
   const [children, setChildren] = useState([]);
@@ -212,6 +223,16 @@ const DataPage = () => {
     });
   })();
 
+  const handleApproveParentAccess = async (grantId) => {
+    try {
+      await axios.patch(`/api/access/grants/${grantId}/approve`);
+      toast.success("Access approved");
+      setPendingParentAccess((p) => p.filter((g) => g._id !== grantId));
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Could not approve");
+    }
+  };
+
   const handleDeleteChild = async (childId) => {
     if (window.confirm("Are you sure you want to delete this child? This action cannot be undone.")) {
       try {
@@ -243,6 +264,30 @@ const DataPage = () => {
             <p>Filtered Children: {filteredChildren.length}</p>
           </div>
         </div> */}
+
+        {isTeacher() && pendingParentAccess.length > 0 && (
+          <div className="alert alert-info mb-4">
+            <div className="w-full">
+              <h3 className="font-bold">Parent requests to view your classroom data</h3>
+              <ul className="mt-2 space-y-2">
+                {pendingParentAccess.map((g) => (
+                  <li key={g._id} className="flex flex-wrap items-center justify-between gap-2 border border-base-300 rounded-lg p-2">
+                    <span className="text-sm">
+                      {(g.parentId?.name || "Parent") + " — child: " + (g.childId?.name || "—")}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary"
+                      onClick={() => handleApproveParentAccess(g._id)}
+                    >
+                      Approve
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
