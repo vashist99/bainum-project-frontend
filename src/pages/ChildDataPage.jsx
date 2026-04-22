@@ -6,6 +6,7 @@ import { LanguageDevelopmentCharts } from "../components/LanguageDevelopmentChar
 import axios from "../lib/axios";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
+import { getPrimaryChildId, parentHasAccessToChild } from "../utils/parentChildren.js";
 import { highlightRAGSegments, getSegmentsForHighlighting } from "../utils/ragHighlightSegments.js";
 import { RAGColorLegend } from "../utils/RAGColorLegend.jsx";
 
@@ -13,27 +14,9 @@ const ChildDataPage = () => {
   const { childId } = useParams();
   const navigate = useNavigate();
   const { user, isParent, isAdmin, isTeacher } = useAuth();
-
-  // Prevent parents from navigating away using browser back button
-  useEffect(() => {
-    if (isParent() && user?.childId) {
-      const handlePopState = () => {
-        // Prevent navigation away from child's page
-        window.history.pushState(null, '', `/data/child/${user.childId}`);
-        toast.info("You can only view your child's data page");
-      };
-
-      // Push current state to prevent back navigation
-      window.history.pushState(null, '', `/data/child/${user.childId}`);
-      
-      window.addEventListener('popstate', handlePopState);
-      
-      return () => {
-        window.removeEventListener('popstate', handlePopState);
-      };
-    }
-  }, [isParent, user, childId]);
   const [child, setChild] = useState(null);
+  const [parentChildren, setParentChildren] = useState([]);
+  const [loadingParentChildren, setLoadingParentChildren] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState("");
@@ -49,6 +32,50 @@ const ChildDataPage = () => {
   const [childPreview, setChildPreview] = useState(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [sendingInvite, setSendingInvite] = useState(false);
+  /** True when an invitation already exists for this child (teacher access-denied panel) */
+  const [parentInviteAlreadySent, setParentInviteAlreadySent] = useState(false);
+
+  useEffect(() => {
+    if (!isParent()) return;
+    let cancelled = false;
+    const fetchParentChildren = async () => {
+      try {
+        setLoadingParentChildren(true);
+        const response = await axios.get("/api/children");
+        if (!cancelled) {
+          setParentChildren(Array.isArray(response.data?.children) ? response.data.children : []);
+        }
+      } catch {
+        if (!cancelled) setParentChildren([]);
+      } finally {
+        if (!cancelled) setLoadingParentChildren(false);
+      }
+    };
+    fetchParentChildren();
+    return () => {
+      cancelled = true;
+    };
+  }, [isParent, user?.id]);
+
+  useEffect(() => {
+    if (!teacherAccessDenied || !childPreview?._id) {
+      setParentInviteAlreadySent(false);
+      return;
+    }
+    const cid = String(childPreview._id);
+    axios
+      .get("/api/invitations/list")
+      .then((res) => {
+        const has = (res.data?.invitations || []).some((inv) => {
+          if (Array.isArray(inv.childIds) && inv.childIds.length) {
+            return inv.childIds.some((id) => String(id) === cid);
+          }
+          return String(inv.childId) === cid;
+        });
+        setParentInviteAlreadySent(has);
+      })
+      .catch(() => setParentInviteAlreadySent(false));
+  }, [teacherAccessDenied, childPreview]);
 
   useEffect(() => {
     const fetchChild = async () => {
@@ -67,14 +94,12 @@ const ChildDataPage = () => {
         }
         
         // If user is a parent, verify they have access to this child
-        if (user?.role === 'parent' && user?.childId) {
-          const userChildId = typeof user.childId === 'string' ? user.childId : user.childId.toString();
+        if (user?.role === 'parent') {
           const currentChildId = childData._id?.toString() || childData.id?.toString();
-          
-          if (userChildId !== currentChildId) {
+          if (!parentHasAccessToChild(user, currentChildId)) {
             toast.error("You don't have access to this child's data");
-            // Redirect to their own child's page instead of home
-            navigate(`/data/child/${user.childId}`, { replace: true });
+            const fallback = getPrimaryChildId(user);
+            if (fallback) navigate(`/data/child/${fallback}`, { replace: true });
             return;
           }
         }
@@ -93,8 +118,9 @@ const ChildDataPage = () => {
         }
         if (error.response?.status === 403) {
           toast.error(errData?.message || "You don't have access to this child's data");
-          if (user?.role === 'parent' && user?.childId) {
-            navigate(`/data/child/${user.childId}`, { replace: true });
+          if (user?.role === 'parent') {
+            const fallback = getPrimaryChildId(user);
+            if (fallback) navigate(`/data/child/${fallback}`, { replace: true });
           } else if (user?.role !== 'teacher') {
             navigate("/home");
           }
@@ -267,6 +293,7 @@ const ChildDataPage = () => {
       } else {
         toast.success("Invitation sent. The parent must register or accept before you can view this page.");
       }
+      setParentInviteAlreadySent(true);
       setInviteEmail("");
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to send invitation");
@@ -374,24 +401,35 @@ const ChildDataPage = () => {
               </p>
               <div className="form-control w-full mt-4">
                 <label className="label"><span className="label-text">Parent email</span></label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="email"
-                    className="input input-bordered flex-1"
-                    placeholder="parent@example.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-primary gap-2"
-                    disabled={sendingInvite}
-                    onClick={handleSendInviteToParent}
-                  >
-                    <Mail className="w-4 h-4" />
-                    {sendingInvite ? "Sending…" : "Send invitation"}
-                  </button>
-                </div>
+                {parentInviteAlreadySent ? (
+                  <div className="flex items-center gap-2">
+                    <span className="badge badge-lg badge-ghost border border-base-300 px-4 py-3">
+                      Invited
+                    </span>
+                    <span className="text-sm text-base-content/60">
+                      An invitation was already sent for this child.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="email"
+                      className="input input-bordered flex-1"
+                      placeholder="parent@example.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-primary gap-2"
+                      disabled={sendingInvite}
+                      onClick={handleSendInviteToParent}
+                    >
+                      <Mail className="w-4 h-4" />
+                      {sendingInvite ? "Sending…" : "Send invitation"}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -434,6 +472,38 @@ const ChildDataPage = () => {
             </h1>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            {isParent() && (
+              <div className="form-control">
+                <label className="label py-0 pb-1">
+                  <span className="label-text text-xs">Child</span>
+                </label>
+                <select
+                  className="select select-bordered select-primary min-w-[180px]"
+                  value={String(child?._id || childId || "")}
+                  disabled={loadingParentChildren}
+                  onChange={(e) => {
+                    const nextId = e.target.value;
+                    if (nextId && String(nextId) !== String(childId)) {
+                      navigate(`/data/child/${nextId}`);
+                    }
+                  }}
+                >
+                  {loadingParentChildren ? (
+                    <option value={String(child?._id || childId || "")}>Loading children...</option>
+                  ) : parentChildren.length > 0 ? (
+                    parentChildren.map((pc) => (
+                      <option key={pc._id || pc.id} value={String(pc._id || pc.id)}>
+                        {pc.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value={String(child?._id || childId || "")}>
+                      {child?.name || "Selected child"}
+                    </option>
+                  )}
+                </select>
+              </div>
+            )}
             {/* View Mode Dropdown */}
             <div className="form-control">
               <select

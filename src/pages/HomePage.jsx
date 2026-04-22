@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
 import { Sparkles, Mic } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { getPrimaryChildId } from "../utils/parentChildren.js";
 import ClassroomUploadModal from "../components/ClassroomUploadModal";
 
 const HomePage = () => {
@@ -12,8 +13,9 @@ const HomePage = () => {
 
   // Redirect parents to their child's page
   useEffect(() => {
-    if (isParent() && user?.childId) {
-      navigate(`/data/child/${user.childId}`);
+    const primary = getPrimaryChildId(user);
+    if (isParent() && primary) {
+      navigate(`/data/child/${primary}`);
     }
   }, [isParent, user, navigate]);
 

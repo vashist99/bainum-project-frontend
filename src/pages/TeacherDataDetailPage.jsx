@@ -8,6 +8,7 @@ import { highlightRAGSegments, getSegmentsForHighlighting } from "../utils/ragHi
 import { RAGColorLegend } from "../utils/RAGColorLegend.jsx";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
+import { getPrimaryChildId } from "../utils/parentChildren.js";
 import ClassroomUploadModal from "../components/ClassroomUploadModal";
 
 const TeacherDataDetailPage = () => {
@@ -99,7 +100,8 @@ const TeacherDataDetailPage = () => {
 
   const handleRequestTeacherAccess = async () => {
     const tid = teacherStub?._id;
-    if (!tid || !user?.childId) {
+    const cid = getPrimaryChildId(user);
+    if (!tid || !cid) {
       toast.error("Missing teacher or child");
       return;
     }
@@ -107,7 +109,7 @@ const TeacherDataDetailPage = () => {
     try {
       await axios.post("/api/access/request-teacher-view", {
         teacherId: tid,
-        childId: user.childId,
+        childId: cid,
       });
       toast.success("Request sent. The teacher must approve before you can view their data.");
     } catch (e) {
@@ -137,7 +139,7 @@ const TeacherDataDetailPage = () => {
       <div className="min-h-screen bg-base-200">
         <Navbar />
         <div className="container mx-auto p-6 max-w-lg">
-          <button type="button" onClick={() => navigate(`/data/child/${user?.childId}`)} className="btn btn-ghost btn-circle mb-4">
+          <button type="button" onClick={() => navigate(`/data/child/${getPrimaryChildId(user)}`)} className="btn btn-ghost btn-circle mb-4">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="card bg-base-100 shadow-xl">
