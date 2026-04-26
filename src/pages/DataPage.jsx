@@ -137,10 +137,12 @@ const DataPage = () => {
   };
 
   const childDocId = (child) => String(child?._id || child?.id || "");
+  const hasLinkedParentAccount = (child) =>
+    Array.isArray(child?.parents) && child.parents.length > 0;
 
   const isChildEligibleForInvite = (child) => {
     const cid = childDocId(child);
-    return cid && !invitedChildIds.has(cid);
+    return cid && !invitedChildIds.has(cid) && !hasLinkedParentAccount(child);
   };
 
   const toggleBulkChild = (child) => {
@@ -564,7 +566,11 @@ const DataPage = () => {
                             >
                               <Trash2 className="w-3 h-3" />
                             </button>
-                            {invitedChildIds.has(String(child._id || child.id)) ? (
+                            {hasLinkedParentAccount(child) ? (
+                              <span className="btn btn-ghost btn-xs gap-1 no-animation pointer-events-none opacity-80 border border-base-300">
+                                Parent linked
+                              </span>
+                            ) : invitedChildIds.has(String(child._id || child.id)) ? (
                               <span className="btn btn-ghost btn-xs gap-1 no-animation pointer-events-none opacity-80 border border-base-300">
                                 Invited
                               </span>
@@ -705,7 +711,14 @@ const DataPage = () => {
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
-                              {invitedChildIds.has(String(child._id || child.id)) ? (
+                              {hasLinkedParentAccount(child) ? (
+                                <span
+                                  className="btn btn-ghost btn-xs gap-1 no-animation pointer-events-none opacity-80 cursor-default border border-base-300"
+                                  title="This child already has a linked parent account"
+                                >
+                                  Parent linked
+                                </span>
+                              ) : invitedChildIds.has(String(child._id || child.id)) ? (
                                 <span
                                   className="btn btn-ghost btn-xs gap-1 no-animation pointer-events-none opacity-80 cursor-default border border-base-300"
                                   title="Invitation already sent for this child"
