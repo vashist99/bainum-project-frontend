@@ -879,8 +879,8 @@ const ChildDataPage = () => {
           </div>
         </div>
 
-        {/* Transcripts Section - Admin Only */}
-        {isAdmin() && (
+        {/* Transcripts Section - Admin + Parent */}
+        {(isAdmin() || isParent()) && (
           <div className="card bg-base-100 shadow-xl mb-6">
             <div className="card-body">
               <div className="flex items-center justify-between mb-4">
@@ -892,7 +892,7 @@ const ChildDataPage = () => {
                   <div className="text-sm text-base-content/60">
                     {allAssessments.filter(a => a.transcript && a.transcript.trim()).length} transcript{allAssessments.filter(a => a.transcript && a.transcript.trim()).length !== 1 ? 's' : ''} available
                   </div>
-                  {allAssessments.filter(a => a.transcript && a.transcript.trim()).length > 0 && (
+                  {isAdmin() && allAssessments.filter(a => a.transcript && a.transcript.trim()).length > 0 && (
                     <button
                       onClick={() => {
                         // Combine all transcripts into one file
@@ -963,13 +963,15 @@ const ChildDataPage = () => {
                                 </p>
                               )}
                             </div>
-                            <button
-                              onClick={() => handleDeleteChildAssessment(assessment._id)}
-                              className="btn btn-ghost btn-sm btn-circle text-error"
-                              title="Delete transcript"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {isAdmin() && (
+                              <button
+                                onClick={() => handleDeleteChildAssessment(assessment._id)}
+                                className="btn btn-ghost btn-sm btn-circle text-error"
+                                title="Delete transcript"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                           
                           <div className="bg-base-100 p-4 rounded-lg border border-base-300 max-h-64 overflow-y-auto">
