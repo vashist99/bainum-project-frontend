@@ -879,8 +879,10 @@ const ChildDataPage = () => {
           </div>
         </div>
 
-        {/* Transcripts Section - Admin + Parent */}
-        {(isAdmin() || isParent()) && (
+        {/* Transcripts Section - visible to anyone the backend already lets fetch /api/assessments/child/:id.
+            That's: admins (always), parents (their own children), and teachers (with active AccessGrant).
+            Hiding it from teachers meant their own recordings never surfaced on the child's page. */}
+        {(isAdmin() || isParent() || (isTeacher() && !teacherAccessDenied)) && (
           <div className="card bg-base-100 shadow-xl mb-6">
             <div className="card-body">
               <div className="flex items-center justify-between mb-4">
@@ -892,7 +894,7 @@ const ChildDataPage = () => {
                   <div className="text-sm text-base-content/60">
                     {allAssessments.filter(a => a.transcript && a.transcript.trim()).length} transcript{allAssessments.filter(a => a.transcript && a.transcript.trim()).length !== 1 ? 's' : ''} available
                   </div>
-                  {isAdmin() && allAssessments.filter(a => a.transcript && a.transcript.trim()).length > 0 && (
+                  {allAssessments.filter(a => a.transcript && a.transcript.trim()).length > 0 && (
                     <button
                       onClick={() => {
                         // Combine all transcripts into one file
@@ -907,7 +909,8 @@ const ChildDataPage = () => {
                               hour: '2-digit',
                               minute: '2-digit'
                             });
-                            return `=== Transcript from ${dateStr} ===\n${assessment.uploadedBy ? `Uploaded by: ${assessment.uploadedBy}\n` : ''}${assessment.transcript}\n\n`;
+                            const activityLine = assessment.activity ? `Activity: ${assessment.activity}\n` : '';
+                            return `=== Transcript from ${dateStr} ===\n${activityLine}${assessment.uploadedBy ? `Uploaded by: ${assessment.uploadedBy}\n` : ''}${assessment.transcript}\n\n`;
                           });
                         
                         const allTranscriptsText = transcriptsWithDates.join('\n');
@@ -946,16 +949,30 @@ const ChildDataPage = () => {
                       <div key={assessment._id} className="card bg-base-200 border border-base-300">
                         <div className="card-body p-4">
                           <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <h3 className="font-semibold text-lg flex items-center gap-2">
-                                <Calendar className="w-4 h-4" />
-                                {new Date(assessment.date).toLocaleDateString('en-US', {
-                                  month: 'long',
-                                  day: 'numeric',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-lg flex items-center gap-2 flex-wrap">
+                                <Calendar className="w-4 h-4 shrink-0" />
+                                <span>
+                                  {new Date(assessment.date).toLocaleDateString('en-US', {
+                                    month: 'long',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                                {assessment.activity && (
+                                  <span
+                                    className="badge badge-outline badge-primary badge-sm font-normal"
+                                    title={
+                                      assessment.activityContext === 'school'
+                                        ? 'Activity recorded at school'
+                                        : 'Activity recorded at home'
+                                    }
+                                  >
+                                    {assessment.activity}
+                                  </span>
+                                )}
                               </h3>
                               {assessment.uploadedBy && (
                                 <p className="text-sm text-base-content/60 mt-1">
