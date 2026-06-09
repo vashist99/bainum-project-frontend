@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
-const SidebarItem = ({ icon: Icon, label, href, isActive, onClick, hasSubmenu = false, isOpen = false, children }) => {
+const SidebarItem = ({ icon: IconComponent, label, href, isActive, onClick, hasSubmenu = false, isOpen = false, children }) => { // eslint-disable-line no-unused-vars
   const [isSubmenuOpen, setIsSubmenuOpen] = useState(isOpen);
 
   const handleClick = (e) => {
@@ -31,7 +31,7 @@ const SidebarItem = ({ icon: Icon, label, href, isActive, onClick, hasSubmenu = 
         }`}
       >
         <div className="flex items-center gap-3">
-          <Icon className={`w-5 h-5 ${isActive ? "text-primary-content" : "text-base-content/70 group-hover:text-primary"}`} />
+          <IconComponent className={`w-5 h-5 ${isActive ? "text-primary-content" : "text-base-content/70 group-hover:text-primary"}`} />
           <span className="font-medium">{label}</span>
         </div>
         {hasSubmenu && (
@@ -54,7 +54,7 @@ const SidebarItem = ({ icon: Icon, label, href, isActive, onClick, hasSubmenu = 
   );
 };
 
-const SidebarSubmenuItem = ({ icon: Icon, label, href, isActive, onClick }) => {
+const SidebarSubmenuItem = ({ icon: IconComponent, label, href, isActive, onClick }) => {
   const handleClick = (e) => {
     e.preventDefault();
     if (onClick) {
@@ -74,7 +74,7 @@ const SidebarSubmenuItem = ({ icon: Icon, label, href, isActive, onClick }) => {
           : "hover:bg-base-200 text-base-content/80"
       }`}
     >
-      {Icon && <Icon className="w-4 h-4" />}
+      {IconComponent && <IconComponent className="w-4 h-4" />}
       <span className="text-sm">{label}</span>
     </a>
   );

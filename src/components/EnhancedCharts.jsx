@@ -78,7 +78,7 @@ export const MetricCard = ({
   title, 
   value, 
   previousValue = null, 
-  icon: Icon,
+  icon: IconComponent, // eslint-disable-line no-unused-vars
   color = "primary",
   format = "number",
   suffix = ""
@@ -99,7 +99,7 @@ export const MetricCard = ({
       <div className="card-body p-6">
         <div className="flex items-center justify-between mb-4">
           <div className={`bg-${color}/10 p-3 rounded-lg`}>
-            <Icon className={`w-6 h-6 text-${color}`} />
+            <IconComponent className={`w-6 h-6 text-${color}`} />
           </div>
           {trend !== null && (
             <div className={`flex items-center gap-1 ${trend >= 0 ? 'text-success' : 'text-error'}`}>

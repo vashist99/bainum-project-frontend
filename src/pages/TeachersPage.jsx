@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
-import { Plus, Edit, Trash2, ChevronDown, ChevronRight, User, Mail, Building2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import Sidebar from "../components/Sidebar";
+import { CardLoading, EmptyTeachers } from "../components/LoadingStates";
+import { Plus, Edit, Trash2, ChevronDown, ChevronRight, User, Mail, Building2, ArrowUpDown, ArrowUp, ArrowDown, Search, Filter } from "lucide-react";
 import axios from "../lib/axios";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
@@ -23,6 +25,14 @@ const TeachersPage = () => {
   const [sortByLanguage, setSortByLanguage] = useState(null); // null | 'asc' | 'desc'
   /** Lowercased emails that already have a teacher invitation sent */
   const [invitedTeacherEmails, setInvitedTeacherEmails] = useState(() => new Set());
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState("cards");
+
+  const breadcrumbs = [
+    { label: "Dashboard", href: "/home" },
+    { label: "Teachers" }
+  ];
 
   useEffect(() => {
     if (!isAdmin()) return;
@@ -97,6 +107,17 @@ const TeachersPage = () => {
     let list = selectedCenter
       ? teachers.filter((t) => t.center === selectedCenter)
       : teachers;
+    
+    // Apply search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      list = list.filter((t) => 
+        t.name?.toLowerCase().includes(term) ||
+        t.email?.toLowerCase().includes(term) ||
+        t.center?.toLowerCase().includes(term) ||
+        t.education?.toLowerCase().includes(term)
+      );
+    }
     if (sortByCenter) {
       list = [...list].sort((a, b) => {
         const ca = (a.center || '').toLowerCase();

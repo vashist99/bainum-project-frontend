@@ -104,7 +104,7 @@ export const StatsLoading = ({ count = 4 }) => {
 
 // Empty state component
 export const EmptyState = ({ 
-  icon: Icon = AlertCircle, 
+  icon: IconComponent = AlertCircle, // eslint-disable-line no-unused-vars
   title, 
   description, 
   actionLabel, 
@@ -116,7 +116,7 @@ export const EmptyState = ({
       <div className="card-body">
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="bg-base-200 p-8 rounded-full mb-6">
-            <Icon className="w-16 h-16 text-base-content/40" />
+            <IconComponent className="w-16 h-16 text-base-content/40" />
           </div>
           <h3 className="text-xl font-bold text-base-content mb-2">{title}</h3>
           <p className="text-base-content/60 max-w-md mb-6">{description}</p>

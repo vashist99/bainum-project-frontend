@@ -3,14 +3,14 @@ import { Users, Building2, UserCheck, TrendingUp, Calendar, BookOpen, Award, Clo
 import axios from "../lib/axios";
 import { useAuth } from "../contexts/AuthContext";
 
-const StatCard = ({ icon: Icon, title, value, subtitle, color = "primary", trend = null, loading = false }) => {
+const StatCard = ({ icon: IconComponent, title, value, subtitle, color = "primary", trend = null, loading = false }) => { // eslint-disable-line no-unused-vars
   return (
     <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 border border-base-200">
       <div className="card-body p-6">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className={`bg-${color}/10 p-3 rounded-lg w-fit mb-3`}>
-              <Icon className={`w-6 h-6 text-${color}`} />
+              <IconComponent className={`w-6 h-6 text-${color}`} />
             </div>
             <h3 className="text-2xl font-bold text-base-content mb-1">
               {loading ? (
@@ -36,7 +36,7 @@ const StatCard = ({ icon: Icon, title, value, subtitle, color = "primary", trend
   );
 };
 
-const QuickActionCard = ({ icon: Icon, title, description, onClick, color = "primary" }) => {
+const QuickActionCard = ({ icon: IconComponent, title, description, onClick, color = "primary" }) => { // eslint-disable-line no-unused-vars
   return (
     <button
       onClick={onClick}
@@ -44,7 +44,7 @@ const QuickActionCard = ({ icon: Icon, title, description, onClick, color = "pri
     >
       <div className="card-body p-6">
         <div className={`bg-${color}/10 p-3 rounded-lg w-fit mb-3`}>
-          <Icon className={`w-6 h-6 text-${color}`} />
+          <IconComponent className={`w-6 h-6 text-${color}`} />
         </div>
         <h3 className="text-lg font-semibold text-base-content mb-2">{title}</h3>
         <p className="text-sm text-base-content/70">{description}</p>
