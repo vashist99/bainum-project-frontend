@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { 
-  Home, Users, Building2, BarChart3, UserCircle, Settings, 
-  LogOut, Menu, X, ChevronDown, ChevronRight, Radio, Mic 
+import {
+  Home, Users, Building2, BarChart3, UserCircle, Settings,
+  LogOut, Menu, X, ChevronDown, ChevronRight, School
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -54,35 +54,8 @@ const SidebarItem = ({ icon: IconComponent, label, href, isActive, onClick, hasS
   );
 };
 
-const SidebarSubmenuItem = ({ icon: IconComponent, label, href, isActive, onClick }) => {
-  const handleClick = (e) => {
-    e.preventDefault();
-    if (onClick) {
-      onClick();
-    } else if (href) {
-      window.location.href = href;
-    }
-  };
-
-  return (
-    <a
-      href={href || "#"}
-      onClick={handleClick}
-      className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-200 ${
-        isActive 
-          ? "bg-primary/10 text-primary font-medium" 
-          : "hover:bg-base-200 text-base-content/80"
-      }`}
-    >
-      {IconComponent && <IconComponent className="w-4 h-4" />}
-      <span className="text-sm">{label}</span>
-    </a>
-  );
-};
-
-const Sidebar = ({ isOpen, onToggle, currentPath = "/", onShowUploadModal, onShowActivityModal }) => {
+const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
   const { user, logout, isAdmin, isParent, isTeacher } = useAuth();
-  const [showRecordingSubmenu, setShowRecordingSubmenu] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -96,6 +69,16 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/", onShowUploadModal, onSho
       href: "/home",
       isActive: currentPath === "/home" || currentPath === "/"
     },
+    // Classrooms: admins get the full list page; teachers land on their
+    // classrooms view on the homepage. Hidden for parents.
+    ...(isAdmin() || isTeacher() ? [
+      {
+        icon: School,
+        label: "Classrooms",
+        href: isAdmin() ? "/classrooms" : "/home",
+        isActive: currentPath.startsWith("/classrooms")
+      }
+    ] : []),
     ...(isAdmin() ? [
       {
         icon: Building2,
@@ -125,14 +108,7 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/", onShowUploadModal, onSho
         href: "/data",
         isActive: currentPath.startsWith("/data")
       }
-    ] : []),
-    {
-      icon: Radio,
-      label: "Recordings",
-      hasSubmenu: true,
-      isOpen: showRecordingSubmenu,
-      onClick: () => setShowRecordingSubmenu(!showRecordingSubmenu)
-    }
+    ] : [])
   ];
 
   return (
@@ -194,36 +170,7 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/", onShowUploadModal, onSho
           <nav className="flex-1 overflow-y-auto p-4">
             <div className="space-y-2">
               {navigationItems.map((item, index) => (
-                <SidebarItem key={index} {...item}>
-                  {item.label === "Recordings" && (
-                    <div className="space-y-1">
-                      {(isTeacher() || isParent()) && (
-                        <SidebarSubmenuItem
-                          icon={Radio}
-                          label="Record Activity"
-                          onClick={() => {
-                            if (onShowActivityModal) {
-                              onShowActivityModal();
-                            }
-                            setShowRecordingSubmenu(false);
-                          }}
-                        />
-                      )}
-                      {(isAdmin() || isTeacher()) && (
-                        <SidebarSubmenuItem
-                          icon={Mic}
-                          label="Upload Classroom Recording"
-                          onClick={() => {
-                            if (onShowUploadModal) {
-                              onShowUploadModal();
-                            }
-                            setShowRecordingSubmenu(false);
-                          }}
-                        />
-                      )}
-                    </div>
-                  )}
-                </SidebarItem>
+                <SidebarItem key={index} {...item} />
               ))}
             </div>
           </nav>

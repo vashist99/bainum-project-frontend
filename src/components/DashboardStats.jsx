@@ -1,34 +1,26 @@
 import { useState, useEffect } from "react";
-import { Users, Building2, UserCheck, TrendingUp, Calendar, BookOpen, Award, Clock } from "lucide-react";
+import { Users, Building2, UserCheck, BookOpen, Clock } from "lucide-react";
 import axios from "../lib/axios";
 import { useAuth } from "../contexts/AuthContext";
 
-const StatCard = ({ icon: IconComponent, title, value, subtitle, color = "primary", trend = null, loading = false }) => { // eslint-disable-line no-unused-vars
+const StatCard = ({ icon: IconComponent, title, value, subtitle, color = "primary", loading = false }) => { // eslint-disable-line no-unused-vars
   return (
     <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 border border-base-200">
       <div className="card-body p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className={`bg-${color}/10 p-3 rounded-lg w-fit mb-3`}>
-              <IconComponent className={`w-6 h-6 text-${color}`} />
-            </div>
-            <h3 className="text-2xl font-bold text-base-content mb-1">
-              {loading ? (
-                <div className="skeleton w-16 h-8"></div>
-              ) : (
-                value
-              )}
-            </h3>
-            <p className="text-sm text-base-content/70 font-medium">{title}</p>
-            {subtitle && (
-              <p className="text-xs text-base-content/50 mt-1">{subtitle}</p>
-            )}
+        <div>
+          <div className={`bg-${color}/10 p-3 rounded-lg w-fit mb-3`}>
+            <IconComponent className={`w-6 h-6 text-${color}`} />
           </div>
-          {trend && !loading && (
-            <div className={`text-${trend >= 0 ? 'success' : 'error'} text-sm flex items-center gap-1`}>
-              <TrendingUp className={`w-4 h-4 ${trend < 0 ? 'rotate-180' : ''}`} />
-              <span>{Math.abs(trend)}%</span>
-            </div>
+          <h3 className="text-2xl font-bold text-base-content mb-1">
+            {loading ? (
+              <div className="skeleton w-16 h-8"></div>
+            ) : (
+              value
+            )}
+          </h3>
+          <p className="text-sm text-base-content/70 font-medium">{title}</p>
+          {subtitle && (
+            <p className="text-xs text-base-content/50 mt-1">{subtitle}</p>
           )}
         </div>
       </div>
@@ -40,14 +32,19 @@ const QuickActionCard = ({ icon: IconComponent, title, description, onClick, col
   return (
     <button
       onClick={onClick}
-      className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 border border-base-200 hover:border-primary text-left active:scale-[0.98]"
+      className="group relative p-6 rounded-xl border-2 border-dashed border-base-300 hover:border-primary hover:bg-primary/5 transition-all duration-300 text-left focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-[0.98]"
     >
-      <div className="card-body p-6">
-        <div className={`bg-${color}/10 p-3 rounded-lg w-fit mb-3`}>
-          <IconComponent className={`w-6 h-6 text-${color}`} />
+      <div className="flex items-start gap-4">
+        <div className={`bg-gradient-to-br from-${color} to-${color}/80 p-3 rounded-lg shadow-lg group-hover:shadow-xl transition-shadow`}>
+          <IconComponent className="w-5 h-5 text-white" />
         </div>
-        <h3 className="text-lg font-semibold text-base-content mb-2">{title}</h3>
-        <p className="text-sm text-base-content/70">{description}</p>
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-base-content mb-1 group-hover:text-primary transition-colors">{title}</h3>
+          <p className="text-sm text-base-content/60">{description}</p>
+        </div>
+      </div>
+      <div className="absolute top-3 right-3">
+        <div className="w-2 h-2 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
       </div>
     </button>
   );
@@ -56,11 +53,7 @@ const QuickActionCard = ({ icon: IconComponent, title, description, onClick, col
 const RecentActivityCard = ({ activities = [], loading = false }) => {
   return (
     <div className="card bg-base-100 shadow-xl border border-base-200">
-      <div className="card-body">
-        <h3 className="card-title text-lg mb-4 flex items-center gap-2">
-          <Clock className="w-5 h-5 text-primary" />
-          Recent Activity
-        </h3>
+      <div className="card-body p-6">
         <div className="space-y-3 max-h-64 overflow-y-auto">
           {loading ? (
             Array.from({ length: 5 }).map((_, i) => (
@@ -103,9 +96,7 @@ const DashboardStats = ({ onQuickAction }) => {
     totalChildren: 0,
     totalTeachers: 0,
     totalCenters: 0,
-    activeRecordings: 0,
-    monthlyAssessments: 0,
-    averageProgress: 0
+    activeRecordings: 0
   });
   const [loading, setLoading] = useState(true);
   const [recentActivities, setRecentActivities] = useState([]);
@@ -138,50 +129,15 @@ const DashboardStats = ({ onQuickAction }) => {
           child.assessments && child.assessments.length > 0
         ).length;
 
-        // Calculate monthly assessments (assessments from current month)
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
-        let monthlyAssessments = 0;
-        
-        relevantChildren.forEach(child => {
-          if (child.assessments) {
-            monthlyAssessments += child.assessments.filter(assessment => {
-              const assessmentDate = new Date(assessment.date);
-              return assessmentDate.getMonth() === currentMonth && 
-                     assessmentDate.getFullYear() === currentYear;
-            }).length;
-          }
-        });
-
-        // Calculate average progress (simplified)
-        const childrenWithProgress = relevantChildren.filter(child => 
-          child.assessments && child.assessments.length > 0
-        );
-        const averageProgress = childrenWithProgress.length > 0 
-          ? Math.round((childrenWithProgress.length / relevantChildren.length) * 100)
-          : 0;
-
         setStats({
           totalChildren: isTeacher() ? relevantChildren.length : totalChildren,
           totalTeachers: isTeacher() ? 1 : totalTeachers,
           totalCenters: isAdmin() ? totalCenters : (user?.center ? 1 : 0),
-          activeRecordings,
-          monthlyAssessments,
-          averageProgress
+          activeRecordings
         });
 
         // Generate recent activities
         const activities = [];
-        
-        if (monthlyAssessments > 0) {
-          activities.push({
-            icon: BookOpen,
-            title: `${monthlyAssessments} new assessments`,
-            description: "Recorded this month",
-            time: "This month",
-            color: "success"
-          });
-        }
 
         if (activeRecordings > 0) {
           activities.push({
@@ -248,74 +204,59 @@ const DashboardStats = ({ onQuickAction }) => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-12">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <StatCard
-          icon={Users}
-          title={isTeacher() ? "My Students" : "Total Children"}
-          value={stats.totalChildren}
-          subtitle={isTeacher() ? "Students under your supervision" : "Across all centers"}
-          color="primary"
-          loading={loading}
-        />
-        
-        {(isAdmin() || isTeacher()) && (
+      <div>
+        <h2 className="text-2xl font-bold text-base-content mb-6">Overview</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            icon={UserCheck}
-            title={isAdmin() ? "Total Teachers" : "My Classes"}
-            value={isTeacher() ? "Active" : stats.totalTeachers}
-            subtitle={isAdmin() ? "Across all centers" : "Currently teaching"}
-            color="secondary"
+            icon={Users}
+            title={isTeacher() ? "My Students" : "Total Children"}
+            value={stats.totalChildren}
+            subtitle={isTeacher() ? "Students under your supervision" : "Across all centers"}
+            color="primary"
             loading={loading}
           />
-        )}
-        
-        {isAdmin() && (
+          
+          {(isAdmin() || isTeacher()) && (
+            <StatCard
+              icon={UserCheck}
+              title={isAdmin() ? "Total Teachers" : "My Classes"}
+              value={isTeacher() ? "Active" : stats.totalTeachers}
+              subtitle={isAdmin() ? "Across all centers" : "Currently teaching"}
+              color="secondary"
+              loading={loading}
+            />
+          )}
+          
+          {isAdmin() && (
+            <StatCard
+              icon={Building2}
+              title="Education Centers"
+              value={stats.totalCenters}
+              subtitle="Registered locations"
+              color="accent"
+              loading={loading}
+            />
+          )}
+          
           <StatCard
-            icon={Building2}
-            title="Education Centers"
-            value={stats.totalCenters}
-            subtitle="Registered locations"
-            color="accent"
+            icon={BookOpen}
+            title="Active Recordings"
+            value={stats.activeRecordings}
+            subtitle="Children with assessment data"
+            color="success"
             loading={loading}
           />
-        )}
-        
-        <StatCard
-          icon={BookOpen}
-          title="Active Recordings"
-          value={stats.activeRecordings}
-          subtitle="Children with assessment data"
-          color="success"
-          loading={loading}
-        />
-        
-        <StatCard
-          icon={Calendar}
-          title="Monthly Assessments"
-          value={stats.monthlyAssessments}
-          subtitle="Completed this month"
-          color="info"
-          loading={loading}
-        />
-        
-        <StatCard
-          icon={Award}
-          title="Progress Rate"
-          value={`${stats.averageProgress}%`}
-          subtitle="Children with recorded data"
-          color="warning"
-          loading={loading}
-        />
+        </div>
       </div>
 
-      {/* Quick Actions and Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick Actions */}
-        <div className="lg:col-span-2">
-          <h2 className="text-xl font-bold text-base-content mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Quick Actions Section */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-base-content mb-2">Quick Actions</h2>
+          <p className="text-base-content/60 mb-6">Common tasks and shortcuts</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {quickActions.map((action, index) => (
               <QuickActionCard key={index} {...action} />
             ))}
@@ -324,6 +265,7 @@ const DashboardStats = ({ onQuickAction }) => {
 
         {/* Recent Activity */}
         <div>
+          <h2 className="text-2xl font-bold text-base-content mb-6">Recent Activity</h2>
           <RecentActivityCard activities={recentActivities} loading={loading} />
         </div>
       </div>

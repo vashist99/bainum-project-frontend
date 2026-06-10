@@ -46,8 +46,10 @@ const Navbar = ({ onToggleSidebar, showSidebar = false, breadcrumbs = [] }) => {
           </div>
         )}
         
-        {/* Mobile dropdown - keep for backward compatibility */}
-        <div className="dropdown">
+        {/* Mobile dropdown — only on pages WITHOUT a sidebar (when a sidebar
+            exists, its hamburger toggle covers mobile navigation and these
+            links would be redundant). */}
+        {!onToggleSidebar && <div className="dropdown">
           <button 
             type="button"
             tabIndex={0} 
@@ -114,7 +116,7 @@ const Navbar = ({ onToggleSidebar, showSidebar = false, breadcrumbs = [] }) => {
               </li>
             )}
           </ul>
-        </div>
+        </div>}
         <a href="/home" className="btn btn-ghost text-lg lg:text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent ml-2 lg:ml-0">
           {/* Show abbreviated on mobile when sidebar toggle is present */}
           <span className={onToggleSidebar ? "lg:hidden" : ""}>
@@ -126,7 +128,9 @@ const Navbar = ({ onToggleSidebar, showSidebar = false, breadcrumbs = [] }) => {
         </a>
       </div>
       
-      <div className="navbar-center hidden lg:flex">
+      {/* Top nav tabs — only on pages WITHOUT a sidebar; sidebar pages
+          already list every destination, so the tabs would be redundant. */}
+      {!onToggleSidebar && <div className="navbar-center hidden lg:flex">
         <ul className="menu menu-horizontal px-1 gap-2">
           {isTeacher() && (
             <li>
@@ -161,8 +165,8 @@ const Navbar = ({ onToggleSidebar, showSidebar = false, breadcrumbs = [] }) => {
             </li>
           )}
         </ul>
-      </div>
-      
+      </div>}
+
       <div className="navbar-end">
         {/* Notifications */}
         <div className="dropdown dropdown-end mr-2">
