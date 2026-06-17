@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import { getPrimaryChildId, parentHasAccessToChild } from "../utils/parentChildren.js";
 import { highlightRAGSegments, getSegmentsForHighlighting } from "../utils/ragHighlightSegments.js";
-import { RAGColorLegend } from "../utils/RAGColorLegend.jsx";
+import { classroomRefId, classroomRefName } from "../utils/classroomMembershipUi.js";
 
 const ChildDataPage = () => {
   const { childId } = useParams();
@@ -570,13 +570,10 @@ const ChildDataPage = () => {
                   {Array.isArray(child.classrooms) && child.classrooms.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {child.classrooms.map((room) => {
-                        const id = typeof room === "object" ? room?._id : room;
-                        const name = typeof room === "object" && room?.name
-                          ? room.name
-                          : String(id).slice(-6);
+                        const id = classroomRefId(room);
                         return (
-                          <span key={String(id)} className="badge badge-primary badge-lg">
-                            {name}
+                          <span key={id} className="badge badge-primary badge-lg">
+                            {classroomRefName(room)}
                           </span>
                         );
                       })}
@@ -604,15 +601,11 @@ const ChildDataPage = () => {
               <div className="divider"></div>
               {(() => {
                 const myClassroomIds = new Set(
-                  (child.classrooms || []).map((r) =>
-                    String(typeof r === "object" ? r?._id : r)
-                  )
+                  (child.classrooms || []).map((r) => classroomRefId(r))
                 );
                 const classmates = (allChildren || []).filter((c) => {
                   if (String(c._id) === String(childId)) return false;
-                  const ids = (c.classrooms || []).map((r) =>
-                    String(typeof r === "object" ? r?._id : r)
-                  );
+                  const ids = (c.classrooms || []).map((r) => classroomRefId(r));
                   return ids.some((id) => myClassroomIds.has(id));
                 });
                 if (classmates.length === 0) {
