@@ -105,18 +105,17 @@ const DataPage = () => {
     }
   }, [loading, isTeacher, user, selectedTeacher, teachers]);
 
-  // Filter children by selected center. Teachers' supervised list is
-  // already scoped server-side; the center filter is primarily for admins.
+  // Filter children by selected center for admins. Teachers' supervised list
+  // is already scoped server-side — do not re-filter by center string (that
+  // hid roster members when child.center drifted from the teacher's school).
   useEffect(() => {
-    if (selectedTeacher) {
+    if (selectedTeacher && isAdmin()) {
       const filtered = children.filter((child) => child.center === selectedTeacher);
       setFilteredChildren(filtered);
+    } else if (isAdmin() || isTeacher()) {
+      setFilteredChildren(children);
     } else {
-      if (isAdmin() || isTeacher()) {
-        setFilteredChildren(children);
-      } else {
-        setFilteredChildren([]);
-      }
+      setFilteredChildren([]);
     }
   }, [selectedTeacher, children, isAdmin, isTeacher]);
 

@@ -41,6 +41,7 @@ const App = () => {
           <HomePage />
         </ProtectedRoute>
       } />
+      <Route path="/my-classrooms" element={<Navigate to="/home" replace />} />
       <Route path="/classrooms" element={
         <ProtectedRoute requiredRole="admin">
           <ClassroomsPage />

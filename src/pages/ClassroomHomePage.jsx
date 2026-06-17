@@ -370,16 +370,6 @@ const ClassroomHomePage = () => {
                     <Mic className="w-4 h-4" />
                     Record
                   </button>
-                  {canDelete && (
-                    <button
-                      onClick={() => setShowDeleteModal(true)}
-                      className="btn btn-outline btn-error gap-2 w-full sm:w-auto"
-                      title="Delete classroom"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete Classroom
-                    </button>
-                  )}
                 </div>
               )}
             </div>
@@ -617,6 +607,27 @@ const ClassroomHomePage = () => {
                 )}
               </div>
             </div>
+
+            {canDelete && !isParentView && (
+              <details className="mt-10 pt-4 border-t border-base-200 max-w-3xl">
+                <summary
+                  className="text-xs text-base-content/45 cursor-pointer select-none hover:text-base-content/60 transition-colors [&::-webkit-details-marker]:hidden"
+                >
+                  Advanced options
+                </summary>
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteModal(true)}
+                    className="btn btn-ghost btn-xs text-base-content/50 hover:text-error hover:bg-error/5 gap-1 normal-case font-normal"
+                    title="Permanently delete this classroom"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Delete classroom
+                  </button>
+                </div>
+              </details>
+            )}
           </div>
 
       {/* Modals */}

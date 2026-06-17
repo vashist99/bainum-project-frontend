@@ -32,9 +32,9 @@ export function classroomRefId(room) {
 
 /** Display label for a classroom ref; prefers populated `name` from the API. */
 export function classroomRefName(room) {
-  if (room && typeof room === "object" && room.name) {
-    return room.name;
+  if (room && typeof room === "object") {
+    const name = typeof room.name === "string" ? room.name.trim() : "";
+    if (name) return name;
   }
-  const id = classroomRefId(room);
-  return id || "Unknown classroom";
+  return "Unknown classroom";
 }
