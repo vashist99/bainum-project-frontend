@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import { getPrimaryChildId, parentHasAccessToChild } from "../utils/parentChildren.js";
 import { highlightRAGSegments, getSegmentsForHighlighting } from "../utils/ragHighlightSegments.js";
+import { RAGColorLegend } from "../utils/RAGColorLegend.jsx";
 import { classroomRefId, classroomRefName } from "../utils/classroomMembershipUi.js";
 
 const ChildDataPage = () => {
