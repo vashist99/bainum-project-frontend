@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import AppLayout from "../components/AppLayout";
 import ClassroomInviteModal from "../components/ClassroomInviteModal";
 import ClassroomUploadModal from "../components/ClassroomUploadModal";
+import NotesSection from "../components/NotesSection.jsx";
 import { LanguageDevelopmentCharts } from "../components/LanguageDevelopmentCharts";
 import {
   School,
@@ -407,7 +408,14 @@ const ClassroomHomePage = () => {
                           key={childId}
                           className="py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-3"
                         >
-                          <span className="font-medium truncate">{child.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/data/child/${childId}`)}
+                            className="font-medium truncate link link-hover text-left max-w-full"
+                            title={`View ${child.name}'s data`}
+                          >
+                            {child.name}
+                          </button>
                           <div className="flex items-center gap-3 min-w-0">
                             {/* Parent attribution is admin/teacher-only; the
                                 parent variant never sees the full roster. */}
@@ -522,6 +530,13 @@ const ClassroomHomePage = () => {
                 </div>
               </div>
             )}
+
+            <NotesSection
+              scope="classroom"
+              scopeId={id}
+              canWrite={!isParentView}
+              className="mb-6"
+            />
 
             {/* Transcripts card — last 365 days of classroom recordings */}
             <div className="card bg-base-100 shadow border border-base-200 mt-8">

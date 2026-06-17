@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import AppLayout from "../components/AppLayout";
-import { ArrowLeft, User, Calendar, Languages, Stethoscope, Users, FileText, BookOpen, MessageCircle, Microscope, Brain, Plus, Trash2, Download, Mail } from "lucide-react";
+import { ArrowLeft, User, Calendar, Languages, Stethoscope, Users, FileText, BookOpen, MessageCircle, Microscope, Brain, Trash2, Download, Mail } from "lucide-react";
 import { LanguageDevelopmentCharts } from "../components/LanguageDevelopmentCharts";
 import axios from "../lib/axios";
 import toast from "react-hot-toast";
@@ -10,6 +10,7 @@ import { getPrimaryChildId, parentHasAccessToChild } from "../utils/parentChildr
 import { highlightRAGSegments, getSegmentsForHighlighting } from "../utils/ragHighlightSegments.js";
 import { RAGColorLegend } from "../utils/RAGColorLegend.jsx";
 import { classroomRefId, classroomRefName } from "../utils/classroomMembershipUi.js";
+import NotesSection from "../components/NotesSection.jsx";
 
 const ChildDataPage = () => {
   const { childId } = useParams();
@@ -19,12 +20,11 @@ const ChildDataPage = () => {
   const [parentChildren, setParentChildren] = useState([]);
   const [loadingParentChildren, setLoadingParentChildren] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [notes, setNotes] = useState([]);
-  const [newNote, setNewNote] = useState("");
   const [, setLatestAssessment] = useState(null);
   const [allAssessments, setAllAssessments] = useState([]);
   const [viewMode, setViewMode] = useState("dotmatrix"); // "dotmatrix" or "semicircular"
-  const [allChildren, setAllChildren] = useState([]);
+  const [classmates, setClassmates] = useState([]);
+  const [loadingClassmates, setLoadingClassmates] = useState(false);
   const [cohortThresholdsByCategory, setCohortThresholdsByCategory] = useState(null);
   /** Teacher must have parent-approved access; until then show invite UI */
   const [teacherAccessDenied, setTeacherAccessDenied] = useState(false);
@@ -133,27 +133,6 @@ const ChildDataPage = () => {
     fetchChild();
   }, [childId, user, navigate]);
 
-  // Load notes from database
-  useEffect(() => {
-    const fetchNotes = async () => {
-      if (teacherAccessDenied) return;
-      if (childId) {
-        try {
-          const response = await axios.get(`/api/notes/child/${childId}`);
-          setNotes(response.data.notes || []);
-        } catch (error) {
-          // Only log if it's not a 404 (which is expected if no notes exist)
-          if (error.response?.status !== 404) {
-          console.error("Error fetching notes:", error);
-          }
-          setNotes([]);
-        }
-      }
-    };
-
-    fetchNotes();
-  }, [childId, teacherAccessDenied]);
-
   // Load latest assessment from database
   useEffect(() => {
     const fetchLatestAssessment = async () => {
@@ -199,64 +178,52 @@ const ChildDataPage = () => {
     }).catch(() => setCohortThresholdsByCategory(null));
   }, []);
 
-  // Load all children for the Classmates panel (admin / teacher views).
-  // Lead-teacher data is no longer needed here; classroom membership lives on
-  // the child record itself (`child.classrooms`).
+  // Classmates: roster members from shared classrooms (admin / teacher only).
   useEffect(() => {
-    const fetchChildren = async () => {
-      if (!(isAdmin() || isTeacher())) return;
-      try {
-        const childrenResponse = await axios.get("/api/children");
-        setAllChildren(childrenResponse.data.children || []);
-      } catch (error) {
-        console.error("Error fetching children:", error);
-        setAllChildren([]);
-      }
-    };
-
-    fetchChildren();
-  }, [isAdmin, isTeacher]);
-
-  const handleAddNote = async () => {
-    if (!newNote.trim()) {
-      toast.error("Please enter a note");
+    if (teacherAccessDenied || !(isAdmin() || isTeacher())) {
+      setClassmates([]);
       return;
     }
-
-    try {
-      const noteData = {
-        childId,
-        content: newNote,
-        author: user?.name || "Unknown User",
-        authorId: user?.id
-      };
-
-      const response = await axios.post("/api/notes", noteData);
-      
-      // Add the new note to the list
-      setNotes([response.data.note, ...notes]);
-      setNewNote("");
-      toast.success("Note added successfully!");
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || "Failed to add note";
-      toast.error(errorMessage);
-      console.error("Error adding note:", error);
+    const rooms = child?.classrooms;
+    if (!Array.isArray(rooms) || rooms.length === 0) {
+      setClassmates([]);
+      return;
     }
-  };
-
-  const handleDeleteNote = async (noteId) => {
-    if (window.confirm("Are you sure you want to delete this note?")) {
+    let cancelled = false;
+    const loadClassmates = async () => {
+      setLoadingClassmates(true);
       try {
-        await axios.delete(`/api/notes/${noteId}`);
-        setNotes(notes.filter(note => note._id !== noteId));
-        toast.success("Note deleted successfully!");
+        const roomIds = [...new Set(rooms.map(classroomRefId).filter(Boolean))];
+        const results = await Promise.allSettled(
+          roomIds.map((id) => axios.get(`/api/classrooms/${id}`))
+        );
+        if (cancelled) return;
+        const seen = new Set();
+        const mates = [];
+        const currentId = String(childId);
+        for (const result of results) {
+          if (result.status !== "fulfilled") continue;
+          for (const c of result.value.data?.classroom?.children || []) {
+            const id = String(c.id ?? c._id ?? "");
+            if (!id || id === currentId || seen.has(id)) continue;
+            seen.add(id);
+            mates.push({ id, name: c.name || "Child" });
+          }
+        }
+        mates.sort((a, b) => a.name.localeCompare(b.name));
+        setClassmates(mates);
       } catch (error) {
-        const errorMessage = error.response?.data?.message || "Failed to delete note";
-        toast.error(errorMessage);
-        console.error("Error deleting note:", error);
+        console.error("Error loading classmates:", error);
+        if (!cancelled) setClassmates([]);
+      } finally {
+        if (!cancelled) setLoadingClassmates(false);
       }
-    }
-  };
+    };
+    loadClassmates();
+    return () => {
+      cancelled = true;
+    };
+  }, [child, childId, teacherAccessDenied, isAdmin, isTeacher]);
 
   const handleSendInviteToParent = async () => {
     if (!inviteEmail.trim()) {
@@ -591,8 +558,11 @@ const ChildDataPage = () => {
           </div>
         </div>
 
-        {/* Classmates — children that share at least one classroom with this child. */}
-        {(isAdmin() || isTeacher()) && Array.isArray(child?.classrooms) && child.classrooms.length > 0 && (
+        {/* Classmates — other children in the same classroom roster (staff only). */}
+        {(isAdmin() || isTeacher()) &&
+          !teacherAccessDenied &&
+          Array.isArray(child?.classrooms) &&
+          child.classrooms.length > 0 && (
           <div className="card bg-base-100 shadow-xl mb-6">
             <div className="card-body">
               <h2 className="card-title text-2xl mb-4 flex items-center gap-2">
@@ -600,60 +570,31 @@ const ChildDataPage = () => {
                 Classmates
               </h2>
               <div className="divider"></div>
-              {(() => {
-                const myClassroomIds = new Set(
-                  (child.classrooms || []).map((r) => classroomRefId(r))
-                );
-                const classmates = (allChildren || []).filter((c) => {
-                  if (String(c._id) === String(childId)) return false;
-                  const ids = (c.classrooms || []).map((r) => classroomRefId(r));
-                  return ids.some((id) => myClassroomIds.has(id));
-                });
-                if (classmates.length === 0) {
-                  return (
-                    <div className="alert alert-info">
-                      <span>No other children in the same classroom yet</span>
-                    </div>
-                  );
-                }
-                return (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {classmates.map((otherChild) => (
-                      <div
-                        key={otherChild._id}
-                        onClick={() => navigate(`/data/child/${otherChild._id}`)}
-                        className="card bg-base-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-base-300 hover:border-primary"
+              {loadingClassmates ? (
+                <div className="py-4 flex justify-center">
+                  <span className="loading loading-spinner loading-md text-primary" />
+                </div>
+              ) : classmates.length === 0 ? (
+                <div className="alert alert-info">
+                  <span>No other children in the same classroom yet</span>
+                </div>
+              ) : (
+                <ul className="flex flex-wrap gap-2">
+                  {classmates.map((mate) => (
+                    <li key={mate.id}>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/data/child/${mate.id}`)}
+                        className="btn btn-sm btn-outline btn-primary gap-2"
+                        title={`View ${mate.name}'s data`}
                       >
-                        <div className="card-body p-4">
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-primary" />
-                            <h5 className="font-semibold text-sm">{otherChild.name}</h5>
-                          </div>
-                          <div className="text-xs text-base-content/60 mt-2">
-                            {otherChild.dateOfBirth && (
-                              <p>Age: {(() => {
-                                const birthDate = new Date(otherChild.dateOfBirth);
-                                const today = new Date();
-                                const yearsDiff = today.getFullYear() - birthDate.getFullYear();
-                                const monthsDiff = today.getMonth() - birthDate.getMonth();
-                                const totalMonths = yearsDiff * 12 + monthsDiff;
-                                const finalMonths = today.getDate() < birthDate.getDate() ? Math.max(0, totalMonths - 1) : totalMonths;
-                                return `${finalMonths} months`;
-                              })()}</p>
-                            )}
-                            {otherChild.gender && <p>Gender: {otherChild.gender}</p>}
-                          </div>
-                          <div className="card-actions justify-end mt-2">
-                            <button className="btn btn-xs btn-primary">
-                              View Details
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
+                        <User className="w-4 h-4" />
+                        {mate.name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         )}
@@ -755,102 +696,14 @@ const ChildDataPage = () => {
         </div>
 
         {/* Notes Section */}
-        <div className="card bg-base-100 shadow-xl">
-          <div className="card-body">
-            <h2 className="card-title flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Notes & Observations
-              <span className="badge badge-primary">{notes.length}</span>
-            </h2>
-            <div className="divider"></div>
-            
-            {/* Add Note Form */}
-            <div className="mb-6">
-              <label className="label">
-                <span className="label-text font-semibold">Add New Note</span>
-              </label>
-              <textarea
-                className="textarea textarea-bordered w-full h-24 focus:textarea-primary"
-                placeholder="Enter your observations, notes, or comments about the child's progress..."
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && e.ctrlKey) {
-                    handleAddNote();
-                  }
-                }}
-              />
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-xs text-base-content/60">Press Ctrl+Enter to add note</span>
-                <button 
-                  onClick={handleAddNote}
-                  className="btn btn-primary btn-sm gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Note
-                </button>
-              </div>
-            </div>
-
-            {/* Notes List */}
-            {notes.length > 0 ? (
-              <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Recent Notes</h3>
-                {notes.map((note) => (
-                  <div key={note._id} className="card bg-base-200">
-                    <div className="card-body p-4">
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="flex-1">
-                          <p className="text-base-content whitespace-pre-wrap">{note.content}</p>
-                          <div className="flex items-center gap-4 mt-3 text-xs text-base-content/60">
-                            <span className="flex items-center gap-1">
-                              <User className="w-3 h-3" />
-                              {note.author}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(note.timestamp).toLocaleString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleDeleteNote(note._id)}
-                          className="btn btn-ghost btn-sm btn-circle text-error"
-                          title="Delete note"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-            <div className="alert alert-info">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                className="stroke-current shrink-0 w-6 h-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                ></path>
-              </svg>
-                <span>No notes yet. Add your first observation above!</span>
-            </div>
-            )}
-          </div>
-        </div>
+        {!teacherAccessDenied && (
+          <NotesSection
+            scope="child"
+            scopeId={childId}
+            canWrite={true}
+            className="mb-6"
+          />
+        )}
 
         {/* Transcripts Section - visible to anyone the backend already lets fetch /api/assessments/child/:id.
             That's: admins (always), parents (their own children), and teachers (with active AccessGrant).
