@@ -921,14 +921,14 @@ const ChildDataPage = () => {
                   <span>No transcripts available yet. Transcripts will appear here after recordings are processed and accepted.</span>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-4 min-w-0">
                   {allAssessments
                     .filter(a => a.transcript && a.transcript.trim())
                     .sort((a, b) => new Date(b.date) - new Date(a.date))
                     .map((assessment) => (
                       <div key={assessment._id} className="card bg-base-200 border border-base-300">
                         <div className="card-body p-4">
-                          <div className="flex justify-between items-start mb-3">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start mb-3">
                             <div className="flex-1 min-w-0">
                               <h3 className="font-semibold text-lg flex items-center gap-2 flex-wrap">
                                 <Calendar className="w-4 h-4 shrink-0" />
@@ -985,12 +985,12 @@ const ChildDataPage = () => {
                               return segments.length > 0 ? (
                                 <>
                                   <RAGColorLegend />
-                                  <p className="text-sm whitespace-pre-wrap leading-relaxed text-base-content">
+                                  <p className="text-sm whitespace-pre-wrap leading-relaxed break-words text-base-content">
                                     {highlightRAGSegments(assessment.transcript, segments)}
                                   </p>
                                 </>
                               ) : (
-                                <p className="text-sm whitespace-pre-wrap leading-relaxed text-base-content">
+                                <p className="text-sm whitespace-pre-wrap leading-relaxed break-words text-base-content">
                                   {assessment.transcript}
                                 </p>
                               );

@@ -567,7 +567,7 @@ const ClassroomHomePage = () => {
                     days will appear here.
                   </p>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 min-w-0">
                     {transcripts.map((rec) => {
                       // Surface "who recorded this" on the classroom variant
                       // since recordings here can span multiple uploaders;
