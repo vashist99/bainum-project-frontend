@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import {
   Home, Users, Building2, BarChart3, UserCircle, Settings,
-  LogOut, X, ChevronDown, ChevronRight, School
+  LogOut, X, ChevronDown, ChevronRight, School, Radio
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getPrimaryChildId } from "../utils/parentChildren.js";
@@ -98,6 +98,14 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
         href: isAdmin() ? "/classrooms" : "/home",
         isActive: currentPath.startsWith("/classrooms"),
       }
+    ] : []),
+    ...(isParent() ? [
+      {
+        icon: Radio,
+        label: "Home",
+        href: "/home/recording",
+        isActive: currentPath.startsWith("/home/recording"),
+      },
     ] : []),
     ...(isParent() && primaryChildId ? [
       {
