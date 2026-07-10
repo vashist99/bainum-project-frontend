@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import AppLayout from "../components/AppLayout";
-import { ArrowLeft, User, UserRound, Calendar, Languages, Stethoscope, Users, School, ChevronDown, FileText, BookOpen, MessageCircle, Microscope, Brain, Trash2, Download, Mail, Home } from "lucide-react";
+import { ArrowLeft, User, UserRound, Calendar, Languages, Stethoscope, Users, School, ChevronDown, FileText, BookOpen, MessageCircle, Microscope, Brain, Trash2, Download, Mail, Home, Lock } from "lucide-react";
 import { LanguageDevelopmentCharts } from "../components/LanguageDevelopmentCharts";
 import axios from "../lib/axios";
 import toast from "react-hot-toast";
@@ -13,6 +13,9 @@ import { classroomRefId, classroomRefName } from "../utils/classroomMembershipUi
 import { compareAssessmentsNewestFirst } from "../utils/assessmentSort.js";
 import { partitionAssessmentsByContext, TALK_VIEWS } from "../utils/talkDataViews.js";
 import NotesSection from "../components/NotesSection.jsx";
+import HomeTalkSharingPanel from "../components/HomeTalkSharingPanel.jsx";
+import { fetchHomeAccessState, requestHomeAccess } from "../lib/homeAccessApi.js";
+import { staffHomeStatusFrom, HOME_ACCESS_STATUS } from "../utils/homeViewAccess.js";
 
 const ChildDataPage = () => {
   const { childId } = useParams();
@@ -25,8 +28,12 @@ const ChildDataPage = () => {
   const [, setLatestAssessment] = useState(null);
   const [allAssessments, setAllAssessments] = useState([]);
   const [viewMode, setViewMode] = useState("dotmatrix"); // "dotmatrix" or "semicircular"
-  /** Parent-only talk data view: classroom (default) or home. Staff never see home data. */
+  /** Talk data view: classroom (default) or home. Staff home view is gated by parent grants. */
   const [talkView, setTalkView] = useState(TALK_VIEWS.CLASSROOM);
+  /** Home view access state: parents get the full sharing state, staff their own status. */
+  const [homeAccess, setHomeAccess] = useState(null);
+  const [loadingHomeAccess, setLoadingHomeAccess] = useState(false);
+  const [requestingHomeAccess, setRequestingHomeAccess] = useState(false);
   const [classmates, setClassmates] = useState([]);
   const [loadingClassmates, setLoadingClassmates] = useState(false);
   const [cohortThresholdsByCategory, setCohortThresholdsByCategory] = useState(null);
@@ -173,6 +180,36 @@ const ChildDataPage = () => {
     fetchAllAssessments();
   }, [childId]);
 
+  // Home view access state — drives the parent sharing panel and the staff home tab gate.
+  const refreshHomeAccess = async () => {
+    if (!childId) return;
+    try {
+      const state = await fetchHomeAccessState(childId);
+      setHomeAccess(state);
+    } catch {
+      setHomeAccess(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!childId || !user?.role) return;
+    let cancelled = false;
+    setLoadingHomeAccess(true);
+    fetchHomeAccessState(childId)
+      .then((state) => {
+        if (!cancelled) setHomeAccess(state);
+      })
+      .catch(() => {
+        if (!cancelled) setHomeAccess(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingHomeAccess(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [childId, user?.id, user?.role]);
+
   // Load cohort WPM stats for children (used for semicircular dial zones)
   useEffect(() => {
     axios.get(`/api/assessments/cohort-stats/children`).then((res) => {
@@ -262,6 +299,19 @@ const ChildDataPage = () => {
     }
   };
 
+  const handleRequestHomeAccess = async () => {
+    setRequestingHomeAccess(true);
+    try {
+      const result = await requestHomeAccess(childId);
+      toast.success(result?.message || "Request sent");
+      await refreshHomeAccess();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to send request");
+    } finally {
+      setRequestingHomeAccess(false);
+    }
+  };
+
   const handleDeleteChildAssessment = async (assessmentId) => {
     if (!window.confirm("Are you sure you want to delete this transcript? This will remove it from the dot matrix and dials, and recalculate thresholds.")) return;
     try {
@@ -281,17 +331,24 @@ const ChildDataPage = () => {
     }
   };
 
-  // Parents see two views (Home talk / Classroom talk); staff receive only
-  // classroom rows from the API, so their page always shows classroom data.
+  // Everyone sees two views (Home talk / Classroom talk) and partitions
+  // client-side. For staff the API includes home rows only when the parent
+  // granted home view access; without a grant the home partition is empty
+  // and the tab shows the request-access gate instead.
   const talkPartition = useMemo(
     () => partitionAssessmentsByContext(allAssessments),
     [allAssessments]
   );
-  const isHomeView = user?.role === 'parent' && talkView === TALK_VIEWS.HOME;
-  const viewAssessments = useMemo(() => {
-    if (user?.role !== 'parent') return allAssessments;
-    return talkView === TALK_VIEWS.HOME ? talkPartition.home : talkPartition.classroom;
-  }, [user?.role, talkView, talkPartition, allAssessments]);
+  const isHomeView = talkView === TALK_VIEWS.HOME;
+  const viewAssessments = useMemo(
+    () => (isHomeView ? talkPartition.home : talkPartition.classroom),
+    [isHomeView, talkPartition]
+  );
+  const isStaffUser = user?.role === 'teacher' || user?.role === 'admin';
+  const staffHomeStatus = isStaffUser ? staffHomeStatusFrom(homeAccess) : null;
+  /** Staff opened the Home tab without a parent grant: show the privacy gate. */
+  const staffHomeLocked =
+    isStaffUser && isHomeView && staffHomeStatus !== HOME_ACCESS_STATUS.GRANTED;
 
   // Get language development data from latest assessment
   // Average words per minute across all assessments with duration data
@@ -478,8 +535,8 @@ const ChildDataPage = () => {
           </div>
         )}
 
-        {/* Parent-only view toggle: classroom talk vs private home talk. */}
-        {isParent() && showFullProfile && (
+        {/* View toggle: classroom talk vs home talk (staff home view is grant-gated). */}
+        {showFullProfile && (
           <div role="tablist" className="tabs tabs-boxed bg-base-200 w-fit mb-6">
             <button
               type="button"
@@ -506,6 +563,49 @@ const ChildDataPage = () => {
 
         {showFullProfile && (
         <>
+        {/* Parent sharing controls for home talk data */}
+        {isParent() && isHomeView && (
+          <HomeTalkSharingPanel
+            childId={childId}
+            state={homeAccess}
+            loading={loadingHomeAccess}
+            onChanged={refreshHomeAccess}
+          />
+        )}
+
+        {/* Staff home view gate: home data is private until the parent grants access */}
+        {staffHomeLocked && (
+          <div className="card bg-base-100 shadow-xl mb-6 border border-warning/30">
+            <div className="card-body items-center text-center">
+              <Lock className="w-10 h-10 text-warning" />
+              <h2 className="card-title text-xl">Home talk data is private</h2>
+              <p className="text-base-content/70 max-w-lg">
+                Home recordings belong to the family. The parent of {displayChild?.name || "this child"} must
+                grant you access before you can view their home talk data.
+              </p>
+              {staffHomeStatus === HOME_ACCESS_STATUS.PENDING ? (
+                <button type="button" className="btn btn-primary mt-2" disabled>
+                  Request sent
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-primary mt-2"
+                  disabled={requestingHomeAccess || loadingHomeAccess}
+                  onClick={handleRequestHomeAccess}
+                >
+                  {requestingHomeAccess ? "Sending…" : "Request access"}
+                </button>
+              )}
+              {staffHomeStatus === HOME_ACCESS_STATUS.PENDING && (
+                <p className="text-xs text-base-content/60">
+                  The parent has been notified and can grant access from their child&apos;s page.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Child Info Card */}
         <div className="card bg-base-100 shadow-xl mb-6">
           <div className="card-body">
@@ -655,7 +755,7 @@ const ChildDataPage = () => {
           </div>
         )}
 
-        {isParent() && viewAssessments.length === 0 ? (
+        {staffHomeLocked ? null : (isParent() || isHomeView) && viewAssessments.length === 0 ? (
           <div className="alert alert-info mb-6">
             <FileText className="w-5 h-5" />
             <span>
@@ -676,6 +776,7 @@ const ChildDataPage = () => {
         )}
 
         {/* Assessment Data - WPM Summary and Progress Timeline */}
+        {!staffHomeLocked && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div className="card bg-base-100 shadow-xl">
             <div className="card-body">
@@ -761,6 +862,7 @@ const ChildDataPage = () => {
             </div>
           </div>
         </div>
+        )}
 
         <NotesSection
           scope="child"
@@ -771,14 +873,14 @@ const ChildDataPage = () => {
         </>
         )}
 
-        {/* Transcripts — scoped to the active talk view for parents; staff receive classroom rows only (home talk is filtered server-side). */}
-        {(isAdmin() || isParent() || isTeacher()) && (
+        {/* Transcripts — scoped to the active talk view. Staff home transcripts render only with an active parent grant (the API filters home rows otherwise). */}
+        {(isAdmin() || isParent() || isTeacher()) && !staffHomeLocked && (
           <div className="card bg-base-100 shadow-xl mb-6">
             <div className="card-body">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="card-title text-2xl flex items-center gap-2">
                   <FileText className="w-6 h-6 text-primary" />
-                  {isParent() ? (isHomeView ? "Home Talk Transcripts" : "Classroom Talk Transcripts") : "Transcripts"}
+                  {showFullProfile ? (isHomeView ? "Home Talk Transcripts" : "Classroom Talk Transcripts") : "Transcripts"}
                 </h2>
                 <div className="flex items-center gap-3">
                   <div className="text-sm text-base-content/60">
@@ -809,7 +911,7 @@ const ChildDataPage = () => {
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                        a.download = `${displayChild?.name || 'child'}_${isParent() ? (isHomeView ? 'home_talk' : 'classroom_talk') : 'all'}_transcripts_${new Date().toISOString().split('T')[0]}.txt`;
+                        a.download = `${displayChild?.name || 'child'}_${isHomeView ? 'home_talk' : 'classroom_talk'}_transcripts_${new Date().toISOString().split('T')[0]}.txt`;
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
