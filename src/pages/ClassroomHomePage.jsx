@@ -198,30 +198,21 @@ const ClassroomHomePage = () => {
 
   /**
    * Decide whether the signed-in viewer can delete a specific
-   * classroom recording. See design.md §D2:
+   * classroom recording. Every recording is a teacher-source row:
    *   - Admins can delete anything in the room.
-   *   - Teachers can delete only their own `source === "teacher"`
-   *     recordings (the recording's `teacherId` must match).
-   *   - Child-source recordings allow delete only to admins (the
-   *     payload lacks an `uploaderId` we'd trust for owner-based
-   *     auth on child rows).
+   *   - Teachers can delete only their own recordings
+   *     (the recording's `teacherId` must match).
+   *   - Parents in read mode never see the control.
    */
   const canDeleteRecording = (rec) => {
     if (!user) return false;
     if (isAdmin()) return true;
-    if (rec?.source === "teacher") {
-      return String(rec?.teacherId ?? "") === String(user.id ?? "");
-    }
-    return false;
+    return String(rec?.teacherId ?? "") === String(user.id ?? "");
   };
 
   const deleteRecording = async (rec) => {
-    const endpoint =
-      rec?.source === "teacher"
-        ? `/api/assessments/teacher/${rec._id}`
-        : `/api/assessments/${rec._id}`;
     try {
-      await axios.delete(endpoint);
+      await axios.delete(`/api/assessments/teacher/${rec._id}`);
       toast.success("Transcript deleted");
       refreshMembership();
     } catch (error) {
@@ -259,10 +250,10 @@ const ClassroomHomePage = () => {
   };
 
   // Dot matrix shows the SUM of per-category WPM across the classroom's
-  // children for each month. LanguageDevelopmentCharts averages the rows it
+  // recordings for each month. LanguageDevelopmentCharts averages the rows it
   // receives per month, so we pre-sum into one synthetic row per month
-  // (average of a single row = the sum). Dials get the raw assessments
-  // (averaged across children) with classroom-scoped threshold markers.
+  // (average of a single row = the sum). Dials get the raw recordings
+  // (averaged) with classroom-scoped threshold markers.
   const summedMonthlyRows = useMemo(() => {
     const sums = {};
     assessments.forEach((a) => {
@@ -475,10 +466,10 @@ const ClassroomHomePage = () => {
                 title={`Classroom Analysis ${viewMode === "dotmatrix" ? "- Year Overview" : ""}`}
                 contextSubtitle={
                   viewMode === "dotmatrix"
-                    ? `Total (summed) WPM per category across all ${classroom.children?.length ?? 0} children`
-                    : `Average WPM per category across all ${classroom.children?.length ?? 0} children — markers use classroom averages`
+                    ? "Total (summed) WPM per category across this classroom's recordings"
+                    : "Average WPM per category across this classroom's recordings — markers use classroom averages"
                 }
-                dotMatrixSubtitle="Total WPM by month (summed across children)"
+                dotMatrixSubtitle="Total WPM by month (summed across recordings)"
                 cohortThresholdsByCategory={viewMode === "semicircular" ? cohortStats : null}
               />
             ) : (
@@ -490,9 +481,9 @@ const ClassroomHomePage = () => {
                   <h3 className="card-title">No recordings yet</h3>
                   <p className="text-base-content/70 max-w-md">
                     {isParentView
-                      ? "No recordings have been made for your children in this classroom yet."
+                      ? "No classroom recordings yet. Recordings made in this classroom will appear here."
                       : classroom.children?.length > 0
-                      ? "Record a classroom session to see aggregated language development data for every child in this classroom."
+                      ? "Record a classroom session to see aggregated language development data for this classroom."
                       : "Add parents to enroll their children in this classroom, then record a session to see aggregated data."}
                   </p>
                   {!isParentView && (
@@ -577,10 +568,7 @@ const ClassroomHomePage = () => {
                       // Surface "who recorded this" on the classroom variant
                       // since recordings here can span multiple uploaders;
                       // the Teacher Profile uses attribution={null}.
-                      const attribution =
-                        rec.source === "teacher"
-                          ? `Recorded by: ${rec.teacherName || "—"}`
-                          : `Recorded for: ${rec.childName || "—"}`;
+                      const attribution = `Recorded by: ${rec.teacherName || rec.uploadedBy || "—"}`;
                       const onDelete = canDeleteRecording(rec)
                         ? () => deleteRecording(rec)
                         : undefined;

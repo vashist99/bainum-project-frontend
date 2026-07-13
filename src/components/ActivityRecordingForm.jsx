@@ -431,12 +431,11 @@ export default function ActivityRecordingForm({
         payload.childId = reviewState.childId;
       }
       const res = await axios.post("/api/assessments/activity/accept", payload);
-      const count = res.data?.count ?? reviewState.targetChildren?.length ?? 0;
       const childName = reviewState.targetChildren?.[0]?.name;
       toast.success(
         role === "parent" && childName
           ? `Saved for ${childName}.`
-          : `Saved for ${count} child${count === 1 ? "" : "ren"}.`
+          : res.data?.message || "Activity recording saved."
       );
       onSuccess?.(res.data);
       onClose?.();
@@ -472,7 +471,7 @@ export default function ActivityRecordingForm({
               {assessment.activityContext === "school" ? "At school" : "At home"}
             </span>
           </p>
-          {Array.isArray(targetChildren) && targetChildren.length > 0 && (
+          {Array.isArray(targetChildren) && targetChildren.length > 0 ? (
             <div className="alert alert-info mb-3 text-sm items-start gap-2 py-2">
               <Sparkles className="w-4 h-4 mt-0.5 shrink-0" />
               <span className="break-words">
@@ -480,7 +479,14 @@ export default function ActivityRecordingForm({
                 <strong>{targetChildren.map((c) => c.name).join(", ")}</strong>
               </span>
             </div>
-          )}
+          ) : role === "teacher" ? (
+            <div className="alert alert-info mb-3 text-sm items-start gap-2 py-2">
+              <Sparkles className="w-4 h-4 mt-0.5 shrink-0" />
+              <span className="break-words">
+                Will be saved to <strong>your teacher profile</strong>.
+              </span>
+            </div>
+          ) : null}
           <div className="divider my-2" />
           <div className="mb-4">
             <label className="label py-1">
