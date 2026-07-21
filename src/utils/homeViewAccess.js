@@ -23,6 +23,23 @@ export function staffHasHomeAccess(state) {
     return staffHomeStatusFrom(state) === HOME_ACCESS_STATUS.GRANTED;
 }
 
+/**
+ * True when the staff member holds the admin-gated transcript tier. The
+ * parent's grant alone covers visualizations only; the API strips
+ * transcript text unless an admin set transcriptAccess on the grant.
+ */
+export function staffHasTranscriptAccess(state) {
+    return staffHasHomeAccess(state) && state?.transcriptAccess === true;
+}
+
+/**
+ * Active grants for the admin management panel (admin responses from
+ * GET /api/home-access/child/:childId include them).
+ */
+export function adminGrantRows(state) {
+    return Array.isArray(state?.grants) ? state.grants : [];
+}
+
 export function allStaffGrantActive(state) {
     return state?.allStaff?.status === "active";
 }

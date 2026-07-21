@@ -27,3 +27,15 @@ export async function requestHomeAccess(childId) {
     const response = await axios.post(`/api/home-access/child/${childId}/request`);
     return response.data;
 }
+
+/**
+ * Admin only: toggle the transcript tier on an active grant. The parent's
+ * grant covers visualizations only; transcript text is admin-gated.
+ */
+export async function setHomeTranscriptAccess(childId, grantId, transcriptAccess) {
+    const response = await axios.post(
+        `/api/home-access/child/${childId}/transcript-access`,
+        { grantId, transcriptAccess }
+    );
+    return response.data;
+}

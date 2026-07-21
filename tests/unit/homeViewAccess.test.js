@@ -8,6 +8,8 @@ import {
     HOME_ACCESS_STATUS,
     staffHomeStatusFrom,
     staffHasHomeAccess,
+    staffHasTranscriptAccess,
+    adminGrantRows,
     allStaffGrantActive,
     classroomGrantRows,
     visiblePendingRequests,
@@ -48,6 +50,47 @@ describe("homeViewAccess — staff status", () => {
         assert.equal(staffHasHomeAccess({ status: "pending" }), false);
         assert.equal(staffHasHomeAccess({ status: "none" }), false);
         assert.equal(staffHasHomeAccess(null), false);
+    });
+});
+
+describe("homeViewAccess — admin-gated transcript tier", () => {
+    test("transcripts require granted status AND the admin flag", () => {
+        assert.equal(
+            staffHasTranscriptAccess({ status: "granted", transcriptAccess: true }),
+            true
+        );
+        assert.equal(
+            staffHasTranscriptAccess({ status: "granted", transcriptAccess: false }),
+            false
+        );
+        // A stale flag on a non-granted state confers nothing.
+        assert.equal(
+            staffHasTranscriptAccess({ status: "pending", transcriptAccess: true }),
+            false
+        );
+        assert.equal(staffHasTranscriptAccess({ status: "granted" }), false);
+        assert.equal(staffHasTranscriptAccess(null), false);
+    });
+
+    test("non-boolean transcriptAccess values fail closed", () => {
+        assert.equal(
+            staffHasTranscriptAccess({ status: "granted", transcriptAccess: "yes" }),
+            false
+        );
+        assert.equal(
+            staffHasTranscriptAccess({ status: "granted", transcriptAccess: 1 }),
+            false
+        );
+    });
+
+    test("adminGrantRows passes through the grants list and is safe otherwise", () => {
+        const grants = [
+            { grantId: "g1", scope: "user", granteeName: "Ms. Rivera", transcriptAccess: false },
+            { grantId: "g2", scope: "all-staff", granteeName: "All teachers and admins", transcriptAccess: true },
+        ];
+        assert.deepEqual(adminGrantRows({ status: "granted", grants }), grants);
+        assert.deepEqual(adminGrantRows({ status: "granted" }), []);
+        assert.deepEqual(adminGrantRows(null), []);
     });
 });
 

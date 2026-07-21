@@ -42,8 +42,9 @@ const HomeTalkSharingPanel = ({ childId, state, loading, onChanged }) => {
                     Home Talk Sharing
                 </h2>
                 <p className="text-sm text-base-content/70">
-                    Home recordings are private to your family. You control which educators can
-                    view this data, and you can revoke access at any time.
+                    Home recordings are private to your family. Granting access shares talk
+                    visualizations (counts and charts) only — transcripts stay private unless an
+                    admin separately enables transcript access. You can revoke access at any time.
                 </p>
 
                 {loading ? (
@@ -65,9 +66,19 @@ const HomeTalkSharingPanel = ({ childId, state, loading, onChanged }) => {
                                 </div>
                                 <p className="text-xs text-base-content/60">
                                     {masterActive
-                                        ? "Every teacher and admin can currently view this child's home talk data."
-                                        : "Grant every teacher and admin access to this child's home talk data."}
+                                        ? "Every teacher and admin can currently view this child's home talk visualizations."
+                                        : "Grant every teacher and admin access to this child's home talk visualizations."}
                                 </p>
+                                {masterActive && (
+                                    <span
+                                        className={`badge badge-sm mt-1 ${state?.allStaff?.transcriptAccess ? "badge-warning" : "badge-ghost"}`}
+                                        title="Transcript access is controlled by admins"
+                                    >
+                                        {state?.allStaff?.transcriptAccess
+                                            ? "Transcripts: shared (admin-approved)"
+                                            : "Transcripts: not shared"}
+                                    </span>
+                                )}
                             </div>
                             {masterActive ? (
                                 <button
@@ -113,8 +124,18 @@ const HomeTalkSharingPanel = ({ childId, state, loading, onChanged }) => {
                                                         {room.leadTeacherName
                                                             ? `Lead teacher: ${room.leadTeacherName}`
                                                             : "No lead teacher assigned"}
-                                                        {granted ? " — has home talk access" : ""}
+                                                        {granted ? " — can view home talk visualizations" : ""}
                                                     </p>
+                                                    {granted && (
+                                                        <span
+                                                            className={`badge badge-sm mt-1 ${room.transcriptAccess ? "badge-warning" : "badge-ghost"}`}
+                                                            title="Transcript access is controlled by admins"
+                                                        >
+                                                            {room.transcriptAccess
+                                                                ? "Transcripts: shared (admin-approved)"
+                                                                : "Transcripts: not shared"}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 {room.leadTeacherId &&
                                                     (granted ? (

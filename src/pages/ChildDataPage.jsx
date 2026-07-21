@@ -13,8 +13,14 @@ import { classroomRefId, classroomRefName } from "../utils/classroomMembershipUi
 import { compareAssessmentsNewestFirst } from "../utils/assessmentSort.js";
 import NotesSection from "../components/NotesSection.jsx";
 import HomeTalkSharingPanel from "../components/HomeTalkSharingPanel.jsx";
+import HomeTranscriptAccessPanel from "../components/HomeTranscriptAccessPanel.jsx";
 import { fetchHomeAccessState, requestHomeAccess } from "../lib/homeAccessApi.js";
-import { staffHomeStatusFrom, HOME_ACCESS_STATUS } from "../utils/homeViewAccess.js";
+import {
+  staffHomeStatusFrom,
+  staffHasTranscriptAccess,
+  HOME_ACCESS_STATUS,
+} from "../utils/homeViewAccess.js";
+import { userCan } from "../lib/permissions.js";
 
 const ChildDataPage = () => {
   const { childId } = useParams();
@@ -316,6 +322,13 @@ const ChildDataPage = () => {
   /** Staff without a parent grant see the privacy gate instead of home data. */
   const staffHomeLocked =
     isStaffUser && staffHomeStatus !== HOME_ACCESS_STATUS.GRANTED;
+  /**
+   * Transcript tier: the parent's grant covers visualizations only. Staff
+   * see transcript text only when an admin set transcriptAccess on their
+   * grant (the API strips it otherwise — this only controls the UI).
+   */
+  const canViewTranscripts =
+    !isStaffUser || staffHasTranscriptAccess(homeAccess);
 
   // Get language development data from latest assessment
   // Average words per minute across all assessments with duration data
@@ -510,6 +523,15 @@ const ChildDataPage = () => {
             childId={childId}
             state={homeAccess}
             loading={loadingHomeAccess}
+            onChanged={refreshHomeAccess}
+          />
+        )}
+
+        {/* Admin-only transcript tier management for this child's active grants */}
+        {userCan(user, "grantHomeTranscriptAccess") && (
+          <HomeTranscriptAccessPanel
+            childId={childId}
+            state={homeAccess}
             onChanged={refreshHomeAccess}
           />
         )}
@@ -813,8 +835,25 @@ const ChildDataPage = () => {
         </>
         )}
 
-        {/* Transcripts — home talk only. Staff transcripts render only with an active parent grant (the API serves no rows otherwise). */}
-        {(isAdmin() || isParent() || isTeacher()) && !staffHomeLocked && (
+        {/* Aggregate-tier staff: charts are visible, transcripts are admin-gated. */}
+        {!staffHomeLocked && isStaffUser && !canViewTranscripts && (
+          <div className="card bg-base-100 shadow-xl mb-6 border border-base-300">
+            <div className="card-body flex-row items-center gap-3">
+              <Lock className="w-6 h-6 text-base-content/50 shrink-0" />
+              <div>
+                <h3 className="font-semibold">Transcripts are admin-gated</h3>
+                <p className="text-sm text-base-content/70">
+                  This grant shares home talk visualizations only. Transcript text
+                  is visible only when an admin enables transcript access.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Transcripts — home talk only. Staff need an active parent grant PLUS the
+            admin-set transcript tier (the API strips transcript text otherwise). */}
+        {(isAdmin() || isParent() || isTeacher()) && !staffHomeLocked && canViewTranscripts && (
           <div className="card bg-base-100 shadow-xl mb-6">
             <div className="card-body">
               <div className="flex items-center justify-between mb-4">

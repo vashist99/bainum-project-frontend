@@ -16,6 +16,7 @@ export const CAPABILITIES = Object.freeze({
     uploadHomeRecording: ["parent"],
     approveCoachAggregateAccess: ["admin", "teacher"],
     grantCoachTranscriptAccess: ["admin"],
+    grantHomeTranscriptAccess: ["admin"],
     requestCoachClassroomAccess: ["coach"],
 });
 
