@@ -92,12 +92,12 @@ export const AuthProvider = ({ children }) => {
     return user?.role === 'teacher';
   };
 
-  const isResearcher = () => {
-    return user?.role === 'researcher';
-  };
-
   const isParent = () => {
     return user?.role === 'parent';
+  };
+
+  const isCoach = () => {
+    return user?.role === 'coach';
   };
 
   const hasRole = (role) => {
@@ -110,8 +110,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     isAdmin,
     isTeacher,
-    isResearcher,
     isParent,
+    isCoach,
     hasRole,
     loading
   };

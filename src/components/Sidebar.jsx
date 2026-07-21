@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import {
   Home, Users, Building2, BarChart3, UserCircle, Settings,
-  LogOut, X, ChevronDown, ChevronRight, School, Radio
+  LogOut, X, ChevronDown, ChevronRight, School, Radio, ClipboardList
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getPrimaryChildId } from "../utils/parentChildren.js";
@@ -71,7 +71,7 @@ const SidebarItem = ({ icon: IconComponent, label, href, isActive, onClick, hasS
 };
 
 const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
-  const { user, logout, isAdmin, isParent, isTeacher } = useAuth();
+  const { user, logout, isAdmin, isParent, isTeacher, isCoach } = useAuth();
   const primaryChildId = isParent() ? getPrimaryChildId(user) : null;
 
   const handleLogout = () => {
@@ -79,7 +79,19 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
     window.location.href = "/";
   };
 
-  const navigationItems = [
+  // Coach-scoped sidebar: dashboard (assigned teachers/classrooms) only.
+  // Coaches never see the admin/teacher management entries below.
+  const navigationItems = isCoach() ? [
+    {
+      icon: Home,
+      label: "Dashboard",
+      href: "/home",
+      isActive:
+        currentPath === "/home" ||
+        currentPath === "/" ||
+        currentPath.startsWith("/classrooms"),
+    },
+  ] : [
     {
       icon: Home,
       label: "Dashboard",
@@ -127,6 +139,12 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
         label: "Teachers",
         href: "/teachers",
         isActive: currentPath.startsWith("/teachers")
+      },
+      {
+        icon: ClipboardList,
+        label: "Coaches",
+        href: "/coaches",
+        isActive: currentPath.startsWith("/coaches")
       }
     ] : []),
     ...(isTeacher() ? [

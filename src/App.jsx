@@ -23,6 +23,8 @@ import CreateClassroomForm from './pages/CreateClassroomForm';
 import ClassroomHomePage from './pages/ClassroomHomePage';
 import ParentHomeRecordingPage from './pages/ParentHomeRecordingPage';
 import SettingsPage from './pages/SettingsPage';
+import CoachesPage from './pages/CoachesPage';
+import CoachRegisterPage from './pages/CoachRegisterPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function LegacySchoolEditRedirect() {
@@ -36,6 +38,7 @@ const App = () => {
       <Route path="/" element={<LoginPage />} />
       <Route path="/parent/register" element={<ParentRegisterPage />} />
       <Route path="/teacher/register" element={<TeacherRegisterPage />} />
+      <Route path="/coach/register" element={<CoachRegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/home" element={
@@ -55,7 +58,7 @@ const App = () => {
         </ProtectedRoute>
       } />
       <Route path="/classrooms/create" element={
-        <ProtectedRoute excludeRoles={['parent']}>
+        <ProtectedRoute excludeRoles={['parent', 'coach']}>
           <CreateClassroomForm />
         </ProtectedRoute>
       } />
@@ -82,6 +85,11 @@ const App = () => {
       <Route path="/centers" element={<Navigate to="/schools" replace />} />
       <Route path="/centers/add" element={<Navigate to="/schools/add" replace />} />
       <Route path="/centers/edit/:id" element={<LegacySchoolEditRedirect />} />
+      <Route path="/coaches" element={
+        <ProtectedRoute requiredRole="admin">
+          <CoachesPage />
+        </ProtectedRoute>
+      } />
       <Route path="/teachers" element={
         <ProtectedRoute requiredRole="admin">
           <TeachersPage />
@@ -100,7 +108,7 @@ const App = () => {
       <Route path="/children/add" element={<AddChildForm />} />
       <Route path="/children/edit/:id" element={<EditChildForm />} />
       <Route path="/data" element={
-        <ProtectedRoute excludeRoles={['parent']}>
+        <ProtectedRoute excludeRoles={['parent', 'coach']}>
           <DataPage />
         </ProtectedRoute>
       } />

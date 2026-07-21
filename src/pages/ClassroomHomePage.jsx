@@ -105,10 +105,18 @@ const ClassroomHomePage = () => {
   };
 
   // The backend tells us how to render the page:
-  //  - role: "admin" | "lead" | "assistant" → full management UI
+  //  - role: "admin" | "lead" | "assistant" → management UI
   //  - role: "parent"                       → read-only variant
+  //  - role: "coach"                        → read-only variant (aggregate
+  //    tier; transcripts only when coachTranscriptAccess is true)
   //  - role: null                           → defensive: legacy clients
   const isParentView = classroom?.role === "parent";
+  const isCoachView = classroom?.role === "coach";
+  const isReadOnlyView = isParentView || isCoachView;
+  const coachHasTranscriptAccess = classroom?.coachTranscriptAccess === true;
+  // Classroom recording is teacher-only: admins lost the upload affordance
+  // (add-coach-role change), coaches and parents never had it here.
+  const canRecord = classroom?.role === "lead" || classroom?.role === "assistant";
   // Show the Delete-classroom button only to admins + the classroom's
   // lead teacher (matches DELETE /api/classrooms/:id authorization).
   const canDelete = (() => {
@@ -345,7 +353,7 @@ const ClassroomHomePage = () => {
                 </div>
               </div>
 
-              {!isParentView && (
+              {!isReadOnlyView && (
                 <div className="flex flex-col sm:flex-row gap-2 shrink-0">
                   <button
                     onClick={() => setShowAddParentsModal(true)}
@@ -354,18 +362,23 @@ const ClassroomHomePage = () => {
                     <UserPlus className="w-4 h-4" />
                     Add Parents
                   </button>
-                  <button
-                    onClick={() => setShowRecordModal(true)}
-                    className="btn btn-primary gap-2 w-full sm:w-auto"
-                  >
-                    <Mic className="w-4 h-4" />
-                    Record
-                  </button>
+                  {canRecord && (
+                    <button
+                      onClick={() => setShowRecordModal(true)}
+                      className="btn btn-primary gap-2 w-full sm:w-auto"
+                    >
+                      <Mic className="w-4 h-4" />
+                      Record
+                    </button>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Children list: members added via parents who accepted the classroom invite */}
+            {/* Children list: members added via parents who accepted the
+                classroom invite. Coaches never see the roster — they consume
+                talk data, not membership. */}
+            {!isCoachView && (
             <div className="card bg-base-100 shadow border border-base-200 mb-6 max-w-3xl">
               <div className="card-body p-4 sm:p-5">
                 <div className="flex items-center justify-between gap-2 mb-1">
@@ -445,6 +458,7 @@ const ClassroomHomePage = () => {
                 )}
               </div>
             </div>
+            )}
 
             {/* Aggregated visualizations */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
@@ -480,13 +494,13 @@ const ClassroomHomePage = () => {
                   </div>
                   <h3 className="card-title">No recordings yet</h3>
                   <p className="text-base-content/70 max-w-md">
-                    {isParentView
+                    {isReadOnlyView
                       ? "No classroom recordings yet. Recordings made in this classroom will appear here."
                       : classroom.children?.length > 0
                       ? "Record a classroom session to see aggregated language development data for this classroom."
                       : "Add parents to enroll their children in this classroom, then record a session to see aggregated data."}
                   </p>
-                  {!isParentView && (
+                  {!isReadOnlyView && (classroom.children?.length > 0 ? canRecord : true) && (
                     <button
                       onClick={() =>
                         classroom.children?.length > 0
@@ -512,14 +526,18 @@ const ClassroomHomePage = () => {
               </div>
             )}
 
+            {!isCoachView && (
             <NotesSection
               scope="classroom"
               scopeId={id}
-              canWrite={!isParentView}
+              canWrite={!isReadOnlyView}
               className="mb-6"
             />
+            )}
 
-            {/* Transcripts card — last 365 days of classroom recordings */}
+            {/* Transcripts card — last 365 days of classroom recordings.
+                Coaches only see it on the admin-granted transcript tier. */}
+            {(!isCoachView || coachHasTranscriptAccess) && (
             <div className="card bg-base-100 shadow border border-base-200 mt-8">
               <div className="card-body p-4 sm:p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
@@ -530,6 +548,8 @@ const ClassroomHomePage = () => {
                       Last 365 days
                     </span>
                   </h2>
+                  {/* No transcript export for coaches — view only. */}
+                  {!isCoachView && (
                   <button
                     onClick={handleDownloadExcel}
                     disabled={
@@ -551,6 +571,7 @@ const ClassroomHomePage = () => {
                     )}
                     Download as Excel
                   </button>
+                  )}
                 </div>
 
                 {loadingTranscripts ? (
@@ -595,8 +616,9 @@ const ClassroomHomePage = () => {
                 )}
               </div>
             </div>
+            )}
 
-            {canDelete && !isParentView && (
+            {canDelete && !isReadOnlyView && (
               <details className="mt-10 pt-4 border-t border-base-200 max-w-3xl">
                 <summary
                   className="text-xs text-base-content/45 cursor-pointer select-none hover:text-base-content/60 transition-colors [&::-webkit-details-marker]:hidden"
@@ -695,10 +717,8 @@ const ClassroomHomePage = () => {
 
       {showRecordModal && (
         <ClassroomUploadModal
-          isAdmin={isAdmin()}
+          isAdmin={false}
           classroomId={id}
-          preselectedTeacherId={isAdmin() ? classroom.teacher?.id : undefined}
-          preselectedCenter={isAdmin() ? classroom.center : undefined}
           onSuccess={refreshMembership}
           onClose={() => setShowRecordModal(false)}
         />

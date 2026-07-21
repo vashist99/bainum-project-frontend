@@ -7,10 +7,12 @@ import { Sparkles, ArrowRight, Plus, School, LayoutGrid } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getPrimaryChildId } from "../utils/parentChildren.js";
 import axios from "../lib/axios";
+import CoachDashboardPage from "./CoachDashboardPage";
+import CoachRequestsPanel from "../components/CoachRequestsPanel";
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { isAdmin, isParent, isTeacher, user } = useAuth();
+  const { isAdmin, isParent, isTeacher, isCoach, user } = useAuth();
   const [classrooms, setClassrooms] = useState([]);
   const [classroomsLoading, setClassroomsLoading] = useState(false);
 
@@ -28,6 +30,11 @@ const HomePage = () => {
       .finally(() => setClassroomsLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  // Coaches get their own dashboard: assigned teachers + classroom access.
+  if (isCoach()) {
+    return <CoachDashboardPage />;
+  }
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -48,6 +55,9 @@ const HomePage = () => {
                 </div>
               </div>
             </div>
+
+            {/* Teacher: pending coach access requests (lead teachers only see rows) */}
+            {isTeacher() && <CoachRequestsPanel />}
 
             {/* Teacher: classroom cards (lead + assisted) */}
             {isTeacher() && (

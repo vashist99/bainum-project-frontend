@@ -15,7 +15,7 @@ const TeacherDataDetailPage = () => {
   const { username: usernameOrId } = useParams();
   const teacherId = usernameOrId;
   const navigate = useNavigate();
-  const { user, isAdmin, isTeacher, isParent } = useAuth();
+  const { user, isTeacher, isParent } = useAuth();
   const [teacher, setTeacher] = useState(null);
   const [assessments, setAssessments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -191,7 +191,9 @@ const TeacherDataDetailPage = () => {
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            {(isAdmin() || isViewingOwnPage) && (
+            {/* Upload is teacher-only (own page): admin classroom upload was
+                removed by the add-coach-role change. */}
+            {isViewingOwnPage && (
               <button onClick={() => setShowUploadModal(true)} className="btn btn-primary gap-2">
                 <Upload className="w-5 h-5" />
                 Upload Recording
@@ -413,11 +415,9 @@ const TeacherDataDetailPage = () => {
 
       {showUploadModal && (
         <ClassroomUploadModal
-          isAdmin={isAdmin()}
+          isAdmin={false}
           onSuccess={handleUploadSuccess}
           onClose={() => setShowUploadModal(false)}
-          preselectedTeacherId={isAdmin() ? teacher._id : undefined}
-          preselectedCenter={isAdmin() ? teacher.center : undefined}
         />
       )}
     </AppLayout>

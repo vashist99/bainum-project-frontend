@@ -47,5 +47,26 @@ export function routeTargetForNotification(n) {
         // Land the parent on the child page, where the sharing panel lives.
         return `/data/child/${n.childId}`;
     }
+    // Coach grant lifecycle. Requests land the teacher on the dashboard
+    // (where the approval panel lives); outcomes land the coach on the
+    // classroom page when they can open it, otherwise the dashboard.
+    if (n.type === "coach-access-requested") {
+        return "/home";
+    }
+    if (
+        (n.type === "coach-access-approved" ||
+            n.type === "coach-transcript-access-changed") &&
+        n.classroomId
+    ) {
+        return `/classrooms/${n.classroomId}`;
+    }
+    if (
+        n.type === "coach-access-denied" ||
+        n.type === "coach-access-revoked" ||
+        n.type === "coach-access-approved" ||
+        n.type === "coach-transcript-access-changed"
+    ) {
+        return "/home";
+    }
     return null;
 }
