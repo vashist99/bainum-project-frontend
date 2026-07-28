@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { LayoutGrid, Table2 } from "lucide-react";
 import { VIEW_MODE_TILES, VIEW_MODE_TABLE } from "../hooks/useViewMode.js";
+import InfoTip from "./InfoTip.jsx";
 
 /**
  * Two-segment "Tiles | Table" pill toggle, used at the top of every list
@@ -45,6 +46,7 @@ export default function ViewModeToggle({ value, onChange, ariaLabel = "View mode
         }`;
 
     return (
+        <div className="flex items-center gap-1.5 w-full sm:w-auto">
         <div
             role="tablist"
             aria-label={ariaLabel}
@@ -76,6 +78,8 @@ export default function ViewModeToggle({ value, onChange, ariaLabel = "View mode
                 <Table2 className="w-4 h-4" aria-hidden="true" />
                 Table
             </button>
+        </div>
+        <InfoTip helpKey="control.viewMode" />
         </div>
     );
 }

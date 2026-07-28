@@ -1,6 +1,6 @@
 # Playwright Test Suite
 
-This directory contains automated end-to-end (E2E) and API tests for the Bainum Project frontend.
+This directory contains automated end-to-end (E2E) and API tests for the CATTAC frontend.
 
 ## Test Structure
 

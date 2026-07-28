@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FileText, ShieldCheck, ShieldOff } from "lucide-react";
 import toast from "react-hot-toast";
 import { setHomeTranscriptAccess } from "../lib/homeAccessApi";
+import InfoTip from "./InfoTip.jsx";
 import { adminGrantRows } from "../utils/homeViewAccess";
 
 /**
@@ -38,6 +39,7 @@ const HomeTranscriptAccessPanel = ({ childId, state, onChanged }) => {
                 <h2 className="card-title text-xl flex items-center gap-2">
                     <FileText className="w-5 h-5 text-primary" />
                     Home Sharing Grants
+                    <InfoTip helpKey="control.homeTranscriptAccess" />
                 </h2>
                 <p className="text-sm text-base-content/70">
                     Parent grants share home talk visualizations only. As an admin you decide,

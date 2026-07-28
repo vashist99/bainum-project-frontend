@@ -1,61 +1,45 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router";
-import { Mail, Lock, User, Eye, EyeOff, CheckCircle, XCircle } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import { Mail, Lock, User, Eye, EyeOff, AtSign } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
-import { verifyCoachInvitation, registerCoach } from "../lib/coachApi";
+import { registerCoach } from "../lib/coachApi";
 
+/**
+ * Open coach self-registration — no invitation required. A new coach has
+ * no classroom access until teachers/admins approve their requests.
+ * Any legacy `?token=` query param is ignored.
+ */
 const CoachRegisterPage = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [verifying, setVerifying] = useState(true);
-  const [invitationValid, setInvitationValid] = useState(false);
-  const [invitationData, setInvitationData] = useState(null);
   const [formData, setFormData] = useState({
+    name: "",
+    email: "",
     username: "",
     password: "",
     confirmPassword: "",
   });
-
-  const token = searchParams.get("token");
-
-  useEffect(() => {
-    const verify = async () => {
-      if (!token) {
-        setVerifying(false);
-        setInvitationValid(false);
-        toast.error("No invitation token provided");
-        return;
-      }
-      try {
-        const data = await verifyCoachInvitation(token);
-        if (data.valid) {
-          setInvitationValid(true);
-          setInvitationData(data.invitation);
-        } else {
-          setInvitationValid(false);
-          toast.error("Invalid or expired invitation");
-        }
-      } catch (error) {
-        setInvitationValid(false);
-        toast.error(error.response?.data?.message || "Invalid invitation");
-      } finally {
-        setVerifying(false);
-      }
-    };
-    verify();
-  }, [token]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const validateForm = () => {
-    if (!formData.username || !formData.password || !formData.confirmPassword) {
+    if (
+      !formData.name.trim() ||
+      !formData.email.trim() ||
+      !formData.username ||
+      !formData.password ||
+      !formData.confirmPassword
+    ) {
       toast.error("Please fill in all fields");
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      toast.error("Please enter a valid email address");
       return false;
     }
     if (!/^[a-z0-9_]{3,30}$/.test(formData.username.toLowerCase().trim())) {
@@ -76,17 +60,14 @@ const CoachRegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-    if (!token) {
-      toast.error("Invalid invitation link");
-      return;
-    }
 
     setLoading(true);
     try {
       const data = await registerCoach({
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
         username: formData.username.toLowerCase().trim(),
         password: formData.password,
-        invitationToken: token,
       });
       toast.success("Account created successfully!");
       login(data.user);
@@ -99,94 +80,80 @@ const CoachRegisterPage = () => {
     }
   };
 
-  if (verifying) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-base-200 to-secondary/10">
-        <div className="card w-full max-w-md bg-base-100 shadow-2xl">
-          <div className="card-body text-center">
-            <span className="loading loading-spinner loading-lg text-primary"></span>
-            <p className="mt-4 text-base-content/70">Verifying invitation...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!invitationValid) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-base-200 to-secondary/10 p-4">
-        <div className="card w-full max-w-md bg-base-100 shadow-2xl">
-          <div className="card-body text-center">
-            <div className="flex justify-center mb-4">
-              <div className="bg-error/10 p-4 rounded-full">
-                <XCircle className="w-12 h-12 text-error" />
-              </div>
-            </div>
-            <h2 className="text-2xl font-bold mb-2">Invalid Invitation</h2>
-            <p className="text-base-content/70 mb-6">
-              This invitation link is invalid or has expired. Please contact an administrator for a new invitation.
-            </p>
-            <button onClick={() => navigate("/")} className="btn btn-primary">
-              Go to Login
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-base-200 to-secondary/10 p-4">
       <div className="card w-full max-w-md bg-base-100 shadow-2xl border border-base-300">
         <div className="card-body">
           <div className="text-center mb-6">
-            <div className="flex justify-center mb-4">
-              <div className="bg-success/10 p-4 rounded-full">
-                <CheckCircle className="w-12 h-12 text-success" />
-              </div>
-            </div>
             <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Create Coach Account
             </h2>
             <p className="text-base-content/60 mt-2">
-              You've been invited to join the Bainum Project as a coach
+              Join CATTAC as a coach — no invitation needed. Classroom access is
+              granted by teachers after you register.
             </p>
           </div>
 
-          {invitationData && (
-            <div className="bg-base-200 rounded-lg p-4 mb-6 space-y-3">
-              <div className="flex items-center gap-3">
-                <User className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm text-base-content/60">Name</p>
-                  <p className="font-semibold">{invitationData.firstName} {invitationData.lastName}</p>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-semibold">Full Name</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-primary/60" />
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm text-base-content/60">Email</p>
-                  <p className="font-semibold">{invitationData.email}</p>
-                </div>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Jane Doe"
+                  className="input input-bordered input-primary w-full pl-10"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
             </div>
-          )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-semibold">Email</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-primary/60" />
+                </div>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="jane@example.com"
+                  className="input input-bordered input-primary w-full pl-10"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+
             <div className="form-control">
               <label className="label">
                 <span className="label-text font-semibold">Username</span>
                 <span className="label-text-alt">3-30 chars, lowercase, numbers, underscore</span>
               </label>
-              <input
-                type="text"
-                name="username"
-                placeholder="janedoe"
-                className="input input-bordered input-primary w-full"
-                value={formData.username}
-                onChange={handleInputChange}
-                required
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <AtSign className="h-5 w-5 text-primary/60" />
+                </div>
+                <input
+                  type="text"
+                  name="username"
+                  placeholder="janedoe"
+                  className="input input-bordered input-primary w-full pl-10"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
             </div>
 
             <div className="form-control">

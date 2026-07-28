@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Share2, ShieldCheck, ShieldOff, UserCheck } from "lucide-react";
 import toast from "react-hot-toast";
 import { grantHomeAccess, revokeHomeAccess } from "../lib/homeAccessApi";
+import InfoTip from "./InfoTip.jsx";
 import {
     allStaffGrantActive,
     classroomGrantRows,
@@ -40,6 +41,7 @@ const HomeTalkSharingPanel = ({ childId, state, loading, onChanged }) => {
                 <h2 className="card-title text-xl flex items-center gap-2">
                     <Share2 className="w-5 h-5 text-primary" />
                     Home Talk Sharing
+                    <InfoTip helpKey="control.homeSharing" />
                 </h2>
                 <p className="text-sm text-base-content/70">
                     Home recordings are private to your family. Granting access shares talk

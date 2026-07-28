@@ -1,15 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import {
-  ClipboardList, Mail, Plus, UserPlus, UserMinus, X,
+  ClipboardList, UserPlus, UserMinus,
   ShieldCheck, ShieldOff, Users, School,
 } from "lucide-react";
 import AppLayout from "../components/AppLayout";
+import InfoTip from "../components/InfoTip.jsx";
 import axios from "../lib/axios";
 import {
   fetchCoaches,
-  sendCoachInvitation,
-  fetchCoachInvitations,
   assignTeacher,
   unassignTeacher,
   revokeCoachGrant,
@@ -24,12 +23,8 @@ const GRANT_STATUS_BADGE = {
 
 const CoachesPage = () => {
   const [coaches, setCoaches] = useState([]);
-  const [invitations, setInvitations] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showInviteForm, setShowInviteForm] = useState(false);
-  const [inviteForm, setInviteForm] = useState({ email: "", firstName: "", lastName: "" });
-  const [inviteSending, setInviteSending] = useState(false);
   const [assigningCoachId, setAssigningCoachId] = useState(null);
   const [selectedTeacherId, setSelectedTeacherId] = useState("");
 
@@ -41,13 +36,11 @@ const CoachesPage = () => {
   const loadAll = useCallback(async () => {
     try {
       setLoading(true);
-      const [coachData, inviteData, teacherRes] = await Promise.all([
+      const [coachData, teacherRes] = await Promise.all([
         fetchCoaches(),
-        fetchCoachInvitations(),
         axios.get("/api/teachers"),
       ]);
       setCoaches(coachData.coaches || []);
-      setInvitations(inviteData.invitations || []);
       setTeachers(teacherRes.data.teachers || []);
     } catch (error) {
       console.error("Error loading coaches:", error);
@@ -60,30 +53,6 @@ const CoachesPage = () => {
   useEffect(() => {
     loadAll();
   }, [loadAll]);
-
-  const handleInvite = async (e) => {
-    e.preventDefault();
-    if (!inviteForm.email || !inviteForm.firstName || !inviteForm.lastName) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-    setInviteSending(true);
-    try {
-      const result = await sendCoachInvitation(inviteForm);
-      if (result.warning) {
-        toast(`Invitation created. Share this link manually: ${result.invitation.invitationLink}`, { duration: 12000 });
-      } else {
-        toast.success("Coach invitation sent");
-      }
-      setInviteForm({ email: "", firstName: "", lastName: "" });
-      setShowInviteForm(false);
-      loadAll();
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to send invitation");
-    } finally {
-      setInviteSending(false);
-    }
-  };
 
   const handleAssign = async (coachId) => {
     if (!selectedTeacherId) {
@@ -149,8 +118,6 @@ const CoachesPage = () => {
     }
   };
 
-  const pendingInvitations = invitations.filter((inv) => inv.status === "pending");
-
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <div className="p-4 sm:p-6">
@@ -160,85 +127,16 @@ const CoachesPage = () => {
               <ClipboardList className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Coaches</h1>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                Coaches
+                <InfoTip helpKey="page.coaches" />
+              </h1>
               <p className="text-base-content/70 text-sm">
-                Invite coaches, assign their teachers, and control classroom data access.
+                Coaches register themselves. Assign their teachers and control classroom data access here.
               </p>
             </div>
           </div>
-          <button
-            className="btn btn-primary gap-2 w-full sm:w-auto"
-            onClick={() => setShowInviteForm((v) => !v)}
-          >
-            {showInviteForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            {showInviteForm ? "Cancel" : "Invite Coach"}
-          </button>
         </div>
-
-        {showInviteForm && (
-          <div className="card bg-base-100 shadow-xl border border-base-300 mb-6">
-            <div className="card-body">
-              <h2 className="card-title text-lg">
-                <Mail className="w-5 h-5 text-primary" />
-                Invite a Coach
-              </h2>
-              <form onSubmit={handleInvite} className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-                <div className="form-control">
-                  <label className="label"><span className="label-text">First name</span></label>
-                  <input
-                    type="text"
-                    className="input input-bordered w-full"
-                    value={inviteForm.firstName}
-                    onChange={(e) => setInviteForm({ ...inviteForm, firstName: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-control">
-                  <label className="label"><span className="label-text">Last name</span></label>
-                  <input
-                    type="text"
-                    className="input input-bordered w-full"
-                    value={inviteForm.lastName}
-                    onChange={(e) => setInviteForm({ ...inviteForm, lastName: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-control">
-                  <label className="label"><span className="label-text">Email</span></label>
-                  <input
-                    type="email"
-                    className="input input-bordered w-full"
-                    value={inviteForm.email}
-                    onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="sm:col-span-3">
-                  <button type="submit" className="btn btn-primary" disabled={inviteSending}>
-                    {inviteSending ? <span className="loading loading-spinner loading-sm" /> : <Mail className="w-4 h-4" />}
-                    Send Invitation
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {pendingInvitations.length > 0 && (
-          <div className="card bg-base-100 shadow border border-base-300 mb-6">
-            <div className="card-body py-4">
-              <h3 className="font-semibold text-sm text-base-content/70 uppercase tracking-wide">Pending invitations</h3>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {pendingInvitations.map((inv) => (
-                  <div key={inv.id} className="badge badge-outline gap-1 py-3">
-                    <Mail className="w-3 h-3" />
-                    {inv.firstName} {inv.lastName} ({inv.email})
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
         {loading ? (
           <div className="flex justify-center py-16">
@@ -252,7 +150,8 @@ const CoachesPage = () => {
               </div>
               <h3 className="card-title">No coaches yet</h3>
               <p className="text-base-content/70 max-w-md">
-                Invite a coach by email. Once they register, assign them the teachers they oversee.
+                Coaches can register themselves from the login page. Once one registers,
+                assign them the teachers they oversee.
               </p>
             </div>
           </div>

@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getPrimaryChildId } from "../utils/parentChildren.js";
+import InfoTip from "./InfoTip.jsx";
 
 const itemClassName = (isActive) =>
   `flex items-center justify-between w-full px-4 py-3 rounded-lg transition-all duration-200 group cursor-pointer ${
@@ -14,7 +15,7 @@ const itemClassName = (isActive) =>
       : "hover:bg-base-200 text-base-content"
   }`;
 
-const SidebarItem = ({ icon: IconComponent, label, href, isActive, onClick, hasSubmenu = false, isOpen = false, children }) => { // eslint-disable-line no-unused-vars
+const SidebarItem = ({ icon: IconComponent, label, href, isActive, onClick, hasSubmenu = false, isOpen = false, helpKey, children }) => { // eslint-disable-line no-unused-vars
   const [isSubmenuOpen, setIsSubmenuOpen] = useState(isOpen);
 
   const handleClick = (e) => {
@@ -32,6 +33,7 @@ const SidebarItem = ({ icon: IconComponent, label, href, isActive, onClick, hasS
         <div className="flex items-center gap-3">
           <IconComponent className={`w-5 h-5 ${isActive ? "text-primary-content" : "text-base-content/70 group-hover:text-primary"}`} />
           <span className="font-medium">{label}</span>
+          {helpKey && <InfoTip helpKey={helpKey} />}
         </div>
         {hasSubmenu && (
           <div className="transition-transform duration-200">
@@ -86,6 +88,7 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
       icon: Home,
       label: "Dashboard",
       href: "/home",
+      helpKey: "nav.dashboard",
       isActive:
         currentPath === "/home" ||
         currentPath === "/" ||
@@ -96,26 +99,18 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
       icon: Home,
       label: "Dashboard",
       href: "/home",
+      helpKey: "nav.dashboard",
       isActive:
         currentPath === "/home" ||
         currentPath === "/" ||
         (isParent() && currentPath.startsWith("/classrooms")),
     },
-    // Classrooms nav: admins get the full list; teachers land on homepage cards.
-    // Parents see enrolled classrooms on the dashboard (no separate tab).
-    ...(isAdmin() || isTeacher() ? [
-      {
-        icon: School,
-        label: "Classrooms",
-        href: isAdmin() ? "/classrooms" : "/home",
-        isActive: currentPath.startsWith("/classrooms"),
-      }
-    ] : []),
     ...(isParent() ? [
       {
         icon: Radio,
         label: "Home",
         href: "/home/recording",
+        helpKey: "nav.homeRecording",
         isActive: currentPath.startsWith("/home/recording"),
       },
     ] : []),
@@ -124,27 +119,66 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
         icon: BarChart3,
         label: "My Child's Data",
         href: `/data/child/${primaryChildId}`,
+        helpKey: "nav.myChildData",
         isActive: currentPath.startsWith("/data/child"),
       }
     ] : []),
+  ];
+
+  // "People" group: Teachers, Children, Coaches — each keeps its route and
+  // role gating. Rendered only when at least one entry is visible, and
+  // auto-expanded when a child route is active. Schools and Classrooms
+  // follow the group, in that order.
+  const peopleItems = [
+    ...(isAdmin() ? [
+      {
+        icon: Users,
+        label: "Teachers",
+        href: "/teachers",
+        helpKey: "nav.teachers",
+        isActive: currentPath.startsWith("/teachers")
+      }
+    ] : []),
+    ...(!isParent() && !isCoach() ? [
+      {
+        icon: BarChart3,
+        label: "Children",
+        href: "/data",
+        helpKey: "nav.children",
+        isActive: currentPath.startsWith("/data")
+      }
+    ] : []),
+    ...(isAdmin() ? [
+      {
+        icon: ClipboardList,
+        label: "Coaches",
+        href: "/coaches",
+        helpKey: "nav.coaches",
+        isActive: currentPath.startsWith("/coaches")
+      }
+    ] : []),
+  ];
+  const peopleChildActive = peopleItems.some((item) => item.isActive);
+
+  const afterPeopleItems = isCoach() ? [] : [
     ...(isAdmin() ? [
       {
         icon: Building2,
         label: "Schools",
         href: "/schools",
+        helpKey: "nav.schools",
         isActive: currentPath.startsWith("/schools") || currentPath.startsWith("/centers")
-      },
+      }
+    ] : []),
+    // Classrooms nav: admins get the full list; teachers land on homepage cards.
+    // Parents see enrolled classrooms on the dashboard (no separate tab).
+    ...(isAdmin() || isTeacher() ? [
       {
-        icon: Users,
-        label: "Teachers",
-        href: "/teachers",
-        isActive: currentPath.startsWith("/teachers")
-      },
-      {
-        icon: ClipboardList,
-        label: "Coaches",
-        href: "/coaches",
-        isActive: currentPath.startsWith("/coaches")
+        icon: School,
+        label: "Classrooms",
+        href: isAdmin() ? "/classrooms" : "/home",
+        helpKey: "nav.classrooms",
+        isActive: currentPath.startsWith("/classrooms"),
       }
     ] : []),
     ...(isTeacher() ? [
@@ -152,17 +186,10 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
         icon: UserCircle,
         label: "My Profile",
         href: user?.username ? `/teachers/${user.username}` : "/profile",
+        helpKey: "nav.myProfile",
         isActive: currentPath.includes("/teachers/") || currentPath === "/profile"
       }
     ] : []),
-    ...(!isParent() ? [
-      {
-        icon: BarChart3,
-        label: "Children",
-        href: "/data",
-        isActive: currentPath.startsWith("/data")
-      }
-    ] : [])
   ];
 
   return (
@@ -191,7 +218,7 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
               </div>
               <div>
                 <h1 className="font-bold text-lg bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  Bainum Project
+                  CATTAC
                 </h1>
                 <p className="text-xs text-base-content/60">Educational Platform</p>
               </div>
@@ -226,6 +253,23 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
               {navigationItems.map((item) => (
                 <SidebarItem key={item.label} {...item} />
               ))}
+              {peopleItems.length > 0 && (
+                <SidebarItem
+                  icon={Users}
+                  label="People"
+                  helpKey="nav.people"
+                  hasSubmenu
+                  isOpen={peopleChildActive}
+                  isActive={false}
+                >
+                  {peopleItems.map((item) => (
+                    <SidebarItem key={item.label} {...item} />
+                  ))}
+                </SidebarItem>
+              )}
+              {afterPeopleItems.map((item) => (
+                <SidebarItem key={item.label} {...item} />
+              ))}
             </div>
           </nav>
 
@@ -235,6 +279,7 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
               <SidebarItem
                 icon={Settings}
                 label="Settings"
+                helpKey="nav.settings"
                 href="/settings"
                 isActive={currentPath === "/settings"}
               />

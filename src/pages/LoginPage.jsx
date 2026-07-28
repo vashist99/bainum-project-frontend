@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { User } from "lucide-react";
 import toast from "react-hot-toast";
 import LoginForm from "../components/LoginForm";
 import SignupForm from "../components/SignupForm";
 
 const LoginPage = () => {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -55,6 +56,16 @@ const LoginPage = () => {
                 className="link link-primary ml-1 font-bold hover:scale-105 transition-transform inline-block"
               >
                 {isLogin ? "Sign Up" : "Sign In"}
+              </button>
+            </p>
+            <p className="text-base-content/60 mt-1 text-sm">
+              Are you a coach?{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/coach/register")}
+                className="link link-secondary font-semibold"
+              >
+                Register as a coach
               </button>
             </p>
           </div>

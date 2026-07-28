@@ -11,7 +11,6 @@ export const CAPABILITIES = Object.freeze({
     manageCoaches: ["admin"],
     inviteParents: ["admin", "teacher"],
     inviteTeachers: ["admin"],
-    inviteCoaches: ["admin"],
     uploadClassroomRecording: ["teacher"],
     uploadHomeRecording: ["parent"],
     approveCoachAggregateAccess: ["admin", "teacher"],

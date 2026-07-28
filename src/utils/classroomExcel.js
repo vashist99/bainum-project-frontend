@@ -27,7 +27,7 @@ export function buildTranscriptsWorkbook(title, recordings, options = {}) {
     const layout = options.layout || TWO_SHEET;
 
     const wb = new ExcelJS.Workbook();
-    wb.creator = "Bainum Project";
+    wb.creator = "CATTAC";
     wb.created = new Date();
     const safeTitle = String(title || "Transcripts").trim() || "Transcripts";
     wb.title = `${safeTitle} transcripts`;

@@ -53,7 +53,7 @@ const Navbar = ({ onToggleSidebar, showSidebar = false, breadcrumbs = [] }) => {
             BP
           </span>
           <span className={onToggleSidebar ? "hidden lg:inline" : ""}>
-            Bainum Project
+            CATTAC
           </span>
         </a>
       </div>

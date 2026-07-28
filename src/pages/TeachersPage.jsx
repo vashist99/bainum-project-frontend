@@ -11,6 +11,7 @@ import { useAuth } from "../contexts/AuthContext";
 import ViewModeToggle from "../components/ViewModeToggle.jsx";
 import useViewMode, { VIEW_MODE_TILES } from "../hooks/useViewMode.js";
 import useSortableList from "../hooks/useSortableList.js";
+import InfoTip from "../components/InfoTip.jsx";
 
 const TeachersPage = () => {
   const navigate = useNavigate();
@@ -531,8 +532,9 @@ const TeachersPage = () => {
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-3xl font-bold text-base-content mb-2">
+                <h1 className="text-3xl font-bold text-base-content mb-2 flex items-center gap-2">
                   Teachers
+                  <InfoTip helpKey="page.teachers" />
                 </h1>
                 <p className="text-base-content/70">
                   Manage teacher profiles and class assignments

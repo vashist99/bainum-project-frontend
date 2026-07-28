@@ -1,10 +1,12 @@
 import { useNavigate } from "react-router";
-import { School, User, Building2, Users } from "lucide-react";
+import { School, Building2, Users } from "lucide-react";
+import { classroomCardTitle } from "../utils/classroomTable.js";
 
 /**
- * Classroom summary card: classroom name as the title, with the lead teacher
- * and center in smaller muted text below. Shows a small "Assistant" badge when
- * the viewing teacher assists (rather than leads) this classroom.
+ * Classroom summary card: the LEAD TEACHER's name is the card title (falling
+ * back to "No lead teacher"), with the classroom name and center in smaller
+ * muted text below. Shows a small "Assistant" badge when the viewing teacher
+ * assists (rather than leads) this classroom.
  *
  * `variant="parent"`: enrolled parents can open the read-only classroom
  * homepage; child chips still link to each child's data page.
@@ -26,11 +28,13 @@ const ClassroomCard = ({ classroom, variant = "staff" }) => {
           <span className="badge badge-secondary badge-outline badge-sm">Assistant</span>
         )}
       </div>
-      <h3 className="card-title text-lg sm:text-xl break-words">{classroom.name}</h3>
+      <h3 className="card-title text-lg sm:text-xl break-words">
+        {classroomCardTitle(classroom)}
+      </h3>
       <div className="mt-1 space-y-1">
         <p className="text-sm text-base-content/70 flex items-center gap-2">
-          <User className="w-4 h-4 shrink-0" />
-          <span className="truncate">{classroom.teacher?.name || "—"}</span>
+          <School className="w-4 h-4 shrink-0" />
+          <span className="truncate">{classroom.name}</span>
         </p>
         {classroom.assistantTeacher?.name && (
           <p className="text-xs text-base-content/60 flex items-center gap-2">

@@ -2,8 +2,8 @@ import axios from "./axios";
 
 /**
  * Client for the coach role APIs:
- * - /api/coaches            admin coach management + coach dashboard + grants
- * - /api/coach-invitations  admin-sent coach invitations
+ * - /api/coaches             admin coach management + coach dashboard + grants
+ * - /api/auth/register-coach open coach self-registration (no invitation)
  */
 
 // --- Admin: coach management ---
@@ -23,25 +23,10 @@ export async function unassignTeacher(coachId, teacherId) {
     return response.data;
 }
 
-// --- Admin: coach invitations ---
+// --- Public: open self-registration ---
 
-export async function sendCoachInvitation({ email, firstName, lastName }) {
-    const response = await axios.post("/api/coach-invitations/send", { email, firstName, lastName });
-    return response.data;
-}
-
-export async function fetchCoachInvitations() {
-    const response = await axios.get("/api/coach-invitations/list");
-    return response.data;
-}
-
-export async function verifyCoachInvitation(token) {
-    const response = await axios.get(`/api/coach-invitations/verify/${token}`);
-    return response.data;
-}
-
-export async function registerCoach({ password, username, invitationToken }) {
-    const response = await axios.post("/api/auth/register-coach", { password, username, invitationToken });
+export async function registerCoach({ name, email, username, password }) {
+    const response = await axios.post("/api/auth/register-coach", { name, email, username, password });
     return response.data;
 }
 

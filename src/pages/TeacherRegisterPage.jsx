@@ -172,7 +172,7 @@ const TeacherRegisterPage = () => {
               Create Teacher Account
             </h2>
             <p className="text-base-content/60 mt-2">
-              You've been invited to join the Bainum Project as a teacher
+              You've been invited to join CATTAC as a teacher
             </p>
           </div>
 

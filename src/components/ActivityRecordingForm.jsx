@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getActivityGroupsForRole } from "../utils/activities.js";
+import InfoTip from "./InfoTip.jsx";
 import {
   Mic,
   MicOff,
@@ -601,6 +602,7 @@ export default function ActivityRecordingForm({
         <h3 className="font-bold text-xl sm:text-2xl mb-1 flex items-center gap-2">
           <Mic className="w-6 h-6 text-primary shrink-0" />
           <span>Record Activity {role === "teacher" ? "(Classroom)" : "(Home)"}</span>
+          <InfoTip helpKey="control.recordActivity" />
         </h3>
         <p className="text-sm text-base-content/70 mb-3">
           {role === "teacher"
