@@ -125,11 +125,20 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
     ] : []),
   ];
 
-  // "People" group: Teachers, Children, Coaches — each keeps its route and
+  // "People" group: Coaches, Teachers, Children — each keeps its route and
   // role gating. Rendered only when at least one entry is visible, and
   // auto-expanded when a child route is active. Schools and Classrooms
   // follow the group, in that order.
   const peopleItems = [
+    ...(isAdmin() ? [
+      {
+        icon: ClipboardList,
+        label: "Coaches",
+        href: "/coaches",
+        helpKey: "nav.coaches",
+        isActive: currentPath.startsWith("/coaches")
+      }
+    ] : []),
     ...(isAdmin() ? [
       {
         icon: Users,
@@ -146,15 +155,6 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
         href: "/data",
         helpKey: "nav.children",
         isActive: currentPath.startsWith("/data")
-      }
-    ] : []),
-    ...(isAdmin() ? [
-      {
-        icon: ClipboardList,
-        label: "Coaches",
-        href: "/coaches",
-        helpKey: "nav.coaches",
-        isActive: currentPath.startsWith("/coaches")
       }
     ] : []),
   ];
