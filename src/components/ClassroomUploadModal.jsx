@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Mic, Upload, Calendar, FileText, Check, X } from "lucide-react";
 import axios from "../lib/axios";
+import { reportTranscriptRejected } from "../lib/activityLogApi.js";
 import { schoolsFromListResponse } from "../utils/schools.js";
 import toast from "react-hot-toast";
 import { highlightRAGSegments, getSegmentsForHighlighting } from "../utils/ragHighlightSegments.js";
@@ -194,6 +195,8 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
   };
 
   const handleReject = () => {
+    // Self-report for the admin activity log.
+    reportTranscriptRejected(pendingAssessment?.activity || "");
     setShowTranscriptModal(false);
     setPendingTranscript(null);
     setPendingAssessment(null);

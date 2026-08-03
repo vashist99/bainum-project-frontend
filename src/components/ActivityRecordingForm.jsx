@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import axios from "../lib/axios";
+import { reportTranscriptRejected } from "../lib/activityLogApi.js";
 import toast from "react-hot-toast";
 import {
   highlightRAGSegments,
@@ -447,6 +448,8 @@ export default function ActivityRecordingForm({
   };
 
   const handleReject = () => {
+    // Self-report for the admin activity log (no-op for parents).
+    reportTranscriptRejected(reviewState?.assessment?.activity || "");
     setReviewState(null);
     toast("Recording discarded.", { icon: "↩️" });
   };

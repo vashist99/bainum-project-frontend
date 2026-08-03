@@ -25,6 +25,7 @@ const EXPECTED_KEYS = [
     "control.recordActivity",
     "control.homeSharing",
     "control.homeTranscriptAccess",
+    "control.activityLog",
 ];
 
 describe("helpText map integrity", () => {

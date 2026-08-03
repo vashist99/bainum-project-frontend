@@ -50,6 +50,8 @@ export const HELP_TEXT = Object.freeze({
         "Home talk is private to your family by default. Grants share visualizations only — transcript text stays admin-gated — and you can revoke any grant at any time.",
     "control.homeTranscriptAccess":
         "Admin-only. A parent's grant shares visualizations only; enable this tier to also expose the child's home transcript text to that staff member.",
+    "control.activityLog":
+        "Admin-only feed of teacher and coach actions (sign-ins, recordings, transcript decisions, classroom and roster changes, access requests). Entries contain no transcript content and are kept for 90 days.",
 });
 
 /** Look up help copy for a key; returns null for unknown keys. */
