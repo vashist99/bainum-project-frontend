@@ -52,6 +52,10 @@ export const HELP_TEXT = Object.freeze({
         "Admin-only. A parent's grant shares visualizations only; enable this tier to also expose the child's home transcript text to that staff member.",
     "control.activityLog":
         "Admin-only feed of teacher and coach actions (sign-ins, recordings, transcript decisions, classroom and roster changes, access requests). Entries contain no transcript content and are kept for 90 days.",
+    "control.termsAcceptance":
+        "You must accept the Terms and Conditions to create an account. The account-deletion policy is shown up front: classroom data you produce stays on the platform even if you later delete your account.",
+    "control.deleteAccount":
+        "Permanently removes your profile and sign-in. Classroom recordings, transcripts, and talk analytics you produced are program records and remain on the platform, attributed to your name. This cannot be undone.",
 });
 
 /** Look up help copy for a key; returns null for unknown keys. */

@@ -26,6 +26,7 @@ const BACKEND_ACTIONS = [
     "coach-grant-revoked",
     "home-access-requested",
     "profile-updated",
+    "account-deleted",
 ];
 
 describe("activityLogFormat — action labels", () => {

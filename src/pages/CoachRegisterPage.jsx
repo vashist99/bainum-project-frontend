@@ -4,6 +4,7 @@ import { Mail, Lock, User, Eye, EyeOff, AtSign } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import { registerCoach } from "../lib/coachApi";
+import TermsAcceptance from "../components/TermsAcceptance.jsx";
 
 /**
  * Open coach self-registration — no invitation required. A new coach has
@@ -15,6 +16,7 @@ const CoachRegisterPage = () => {
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -68,6 +70,7 @@ const CoachRegisterPage = () => {
         email: formData.email.trim().toLowerCase(),
         username: formData.username.toLowerCase().trim(),
         password: formData.password,
+        termsAccepted: true,
       });
       toast.success("Account created successfully!");
       login(data.user);
@@ -209,8 +212,10 @@ const CoachRegisterPage = () => {
               </div>
             </div>
 
+            <TermsAcceptance accepted={termsAccepted} onChange={setTermsAccepted} />
+
             <div className="form-control mt-6">
-              <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+              <button type="submit" className="btn btn-primary w-full" disabled={loading || !termsAccepted}>
                 {loading ? (
                   <>
                     <span className="loading loading-spinner"></span>

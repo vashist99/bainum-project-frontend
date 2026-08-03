@@ -17,6 +17,7 @@ export const CAPABILITIES = Object.freeze({
     grantCoachTranscriptAccess: ["admin"],
     grantHomeTranscriptAccess: ["admin"],
     viewActivityLog: ["admin"],
+    deleteOwnAccount: ["teacher", "coach"],
     requestCoachClassroomAccess: ["coach"],
 });
 

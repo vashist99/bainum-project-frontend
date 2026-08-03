@@ -4,6 +4,7 @@ import { Mail, Lock, User, Eye, EyeOff, CheckCircle, XCircle, GraduationCap, Cal
 import axios from "../lib/axios";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
+import TermsAcceptance from "../components/TermsAcceptance.jsx";
 
 const TeacherRegisterPage = () => {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ const TeacherRegisterPage = () => {
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [verifying, setVerifying] = useState(true);
   const [invitationValid, setInvitationValid] = useState(false);
   const [invitationData, setInvitationData] = useState(null);
@@ -100,6 +102,7 @@ const TeacherRegisterPage = () => {
         username: formData.username.toLowerCase().trim(),
         password: formData.password,
         invitationToken: token,
+        termsAccepted: true,
       });
 
       toast.success("Account created successfully!");
@@ -295,12 +298,14 @@ const TeacherRegisterPage = () => {
               </div>
             </div>
 
+            <TermsAcceptance accepted={termsAccepted} onChange={setTermsAccepted} />
+
             {/* Submit Button */}
             <div className="form-control mt-6">
               <button
                 type="submit"
                 className="btn btn-primary w-full"
-                disabled={loading}
+                disabled={loading || !termsAccepted}
               >
                 {loading ? (
                   <>

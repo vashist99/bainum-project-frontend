@@ -2,6 +2,7 @@ import { useState } from "react";
 import AppLayout from "../components/AppLayout";
 import BugReportForm from "../components/BugReportForm";
 import ActivityLogPanel from "../components/ActivityLogPanel";
+import DeleteAccountPanel from "../components/DeleteAccountPanel";
 import InfoTip from "../components/InfoTip.jsx";
 import { Settings } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
@@ -11,6 +12,7 @@ const SettingsPage = () => {
     const breadcrumbs = [{ label: "Settings", href: "/settings" }];
     const { user } = useAuth();
     const showActivityLog = userCan(user, "viewActivityLog");
+    const showDeleteAccount = userCan(user, "deleteOwnAccount");
     const [activeTab, setActiveTab] = useState("general");
 
     return (
@@ -55,7 +57,10 @@ const SettingsPage = () => {
                 {showActivityLog && activeTab === "activity" ? (
                     <ActivityLogPanel />
                 ) : (
-                    <BugReportForm />
+                    <>
+                        <BugReportForm />
+                        {showDeleteAccount && <DeleteAccountPanel />}
+                    </>
                 )}
             </div>
         </AppLayout>

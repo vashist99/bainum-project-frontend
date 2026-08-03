@@ -20,6 +20,7 @@ export const ACTIVITY_ACTION_LABELS = Object.freeze({
     "coach-grant-revoked": "Coach access revoked",
     "home-access-requested": "Home view access requested",
     "profile-updated": "Profile updated",
+    "account-deleted": "Account deleted",
 });
 
 export const ROLE_LABELS = Object.freeze({
