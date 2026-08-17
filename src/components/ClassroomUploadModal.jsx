@@ -9,6 +9,7 @@ import { RAGColorLegend } from "../utils/RAGColorLegend.jsx";
 import { getActivityGroupsForRole } from "../utils/activities.js";
 import { getLocationsForRole, getDefaultLocationForRole } from "../utils/locations.js";
 import VettedLabelSelect from "./VettedLabelSelect.jsx";
+import InfoTip from "./InfoTip.jsx";
 
 const PROCESSING_MESSAGES = [
   { text: "Uploading your audio file...", icon: "📤" },
@@ -234,7 +235,10 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
           <div className="divider my-2" />
           <div className="mb-4">
             <label className="label py-1">
-              <span className="label-text font-semibold">Transcribed Text</span>
+              <span className="label-text font-semibold flex items-center gap-1">
+                Transcribed Text
+                <InfoTip helpKey="control.transcriptPii" />
+              </span>
             </label>
             <div className="bg-base-200 p-3 sm:p-4 rounded-lg border border-base-300 max-h-72 sm:max-h-96 overflow-y-auto">
               {segments.length > 0 ? (

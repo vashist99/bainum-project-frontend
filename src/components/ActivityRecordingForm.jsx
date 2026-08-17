@@ -494,7 +494,10 @@ export default function ActivityRecordingForm({
           <div className="divider my-2" />
           <div className="mb-4">
             <label className="label py-1">
-              <span className="label-text font-semibold">Transcribed Text</span>
+              <span className="label-text font-semibold flex items-center gap-1">
+                Transcribed Text
+                <InfoTip helpKey="control.transcriptPii" />
+              </span>
             </label>
             <div className="bg-base-200 p-3 sm:p-4 rounded-lg border border-base-300 max-h-60 sm:max-h-72 overflow-y-auto">
               {segments.length > 0 ? (

@@ -9,10 +9,10 @@ const EXPECTED_KEYS = [
     "nav.dashboard",
     "nav.people",
     "nav.teachers",
-    "nav.children",
     "nav.coaches",
     "nav.schools",
     "nav.classrooms",
+    "nav.home",
     "nav.homeRecording",
     "nav.myChildData",
     "nav.myProfile",
@@ -28,6 +28,7 @@ const EXPECTED_KEYS = [
     "control.activityLog",
     "control.termsAcceptance",
     "control.deleteAccount",
+    "control.transcriptPii",
 ];
 
 describe("helpText map integrity", () => {

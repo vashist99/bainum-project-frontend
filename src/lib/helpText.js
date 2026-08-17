@@ -11,11 +11,11 @@ export const HELP_TEXT = Object.freeze({
     "nav.dashboard":
         "Your landing page. Shows quick actions and cards for every classroom you can open.",
     "nav.people":
-        "Directory of the people on the platform: teachers, children, and coaches.",
+        "Directory of the people on the platform: teachers and coaches.",
     "nav.teachers":
         "View and manage teacher profiles. Filter by school, search, add teachers, or send account invitations.",
-    "nav.children":
-        "Every child you supervise. Open a child to see their profile, notes, and home talk data page. Classroom talk lives on the classroom homepage.",
+    "nav.home":
+        "The home recordings of every child you supervise. Open a child to see their profile, notes, and home talk data. Classroom talk lives on the classroom homepage.",
     "nav.coaches":
         "Coach accounts. Coaches register themselves; assign each coach the teachers they oversee and control their classroom data access, including admin-gated transcripts.",
     "nav.schools":
@@ -56,6 +56,8 @@ export const HELP_TEXT = Object.freeze({
         "You must accept the Terms and Conditions to create an account. The account-deletion policy is shown up front: classroom data you produce stays on the platform even if you later delete your account.",
     "control.deleteAccount":
         "Permanently removes your profile and sign-in. Classroom recordings, transcripts, and talk analytics you produced are program records and remain on the platform, attributed to your name. This cannot be undone.",
+    "control.transcriptPii":
+        "Names and other identifiers (phones, emails, addresses) are replaced with labels like [PERSON] or [EMAIL] before you review the transcript. The original wording is not stored.",
 });
 
 /** Look up help copy for a key; returns null for unknown keys. */

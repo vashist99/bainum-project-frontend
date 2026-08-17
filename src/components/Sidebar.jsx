@@ -125,10 +125,9 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
     ] : []),
   ];
 
-  // "People" group: Coaches, Teachers, Children — each keeps its route and
-  // role gating. Rendered only when at least one entry is visible, and
-  // auto-expanded when a child route is active. Schools and Classrooms
-  // follow the group, in that order.
+  // "People" group: Coaches and Teachers only. Rendered when at least one
+  // entry is visible (admins). Teachers no longer have a People group —
+  // Home is a top-level item between Schools and Classrooms.
   const peopleItems = [
     ...(isAdmin() ? [
       {
@@ -148,15 +147,6 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
         isActive: currentPath.startsWith("/teachers")
       }
     ] : []),
-    ...(!isParent() && !isCoach() ? [
-      {
-        icon: BarChart3,
-        label: "Children",
-        href: "/data",
-        helpKey: "nav.children",
-        isActive: currentPath.startsWith("/data")
-      }
-    ] : []),
   ];
   const peopleChildActive = peopleItems.some((item) => item.isActive);
 
@@ -168,6 +158,15 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
         href: "/schools",
         helpKey: "nav.schools",
         isActive: currentPath.startsWith("/schools") || currentPath.startsWith("/centers")
+      }
+    ] : []),
+    ...(!isParent() && !isCoach() ? [
+      {
+        icon: BarChart3,
+        label: "Home",
+        href: "/data",
+        helpKey: "nav.home",
+        isActive: currentPath.startsWith("/data")
       }
     ] : []),
     // Classrooms nav: admins get the full list; teachers land on homepage cards.
