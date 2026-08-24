@@ -39,7 +39,7 @@ const ParentHomeRecordingPage = () => {
   }
 
   const breadcrumbs = [
-    { label: "Home", href: "/home/recording" },
+    { label: "Home Environment Data", href: "/home/recording" },
   ];
 
   const handleSuccess = () => {

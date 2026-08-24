@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import axios from "../lib/axios";
 import toast from "react-hot-toast";
-import { Mail, Lock, Eye, EyeOff, Shield } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 const LoginForm = () => {
@@ -12,7 +12,6 @@ const LoginForm = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    role: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -64,7 +63,6 @@ const LoginForm = () => {
       setFormData({
         email: "",
         password: "",
-        role: "",
       });
     } catch (error) {
       const errorMessage =
@@ -100,36 +98,9 @@ const LoginForm = () => {
           />
         </div>
         <div id="email-hint" className="label">
-          <span className="label-text-alt text-base-content/60">Enter your registered email address</span>
-        </div>
-      </div>
-
-      {/* Role Field - Optional, for admin/teacher login */}
-      <div className="form-control">
-        <label htmlFor="role" className="label">
-          <span className="label-text font-semibold">Role (Optional)</span>
-          <span className="label-text-alt text-base-content/60">Leave blank for parent login</span>
-        </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" aria-hidden="true">
-            <Shield className="h-5 w-5 text-primary/60" />
-          </div>
-          <select
-            id="role"
-            name="role"
-            className="select select-bordered select-primary w-full pl-10 focus:select-primary transition-all duration-200"
-            value={formData.role}
-            onChange={handleInputChange}
-            aria-describedby="role-hint"
-          >
-            <option value="">Auto-detect (Parent/Teacher/Admin)</option>
-            <option value="parent">Parent</option>
-            <option value="teacher">Teacher</option>
-            <option value="admin">Administrator</option>
-          </select>
-        </div>
-        <div id="role-hint" className="label">
-          <span className="label-text-alt text-base-content/60">System will automatically detect your role if left blank</span>
+          <span className="label-text-alt text-base-content/60">
+            Enter your registered email. Your role is detected automatically.
+          </span>
         </div>
       </div>
 

@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import { buildClassroomWorkbook } from "../utils/classroomExcel";
 import TranscriptRecordCard from "../components/TranscriptRecordCard.jsx";
+import TranscriptList from "../components/TranscriptList.jsx";
 import { canRemoveChildFromClassroom } from "../utils/classroomMembershipUi.js";
 
 const CATEGORIES = ["science", "social", "literature", "language"];
@@ -541,8 +542,8 @@ const ClassroomHomePage = () => {
             <div className="card bg-base-100 shadow border border-base-200 mt-8">
               <div className="card-body p-4 sm:p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                  <h2 className="font-bold text-lg flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-primary" />
+                  <h2 className="font-bold text-lg flex items-center gap-2 min-w-0">
+                    <FileText className="w-5 h-5 text-primary shrink-0" />
                     Transcripts
                     <span className="badge badge-ghost badge-sm font-normal">
                       Last 365 days
@@ -584,11 +585,10 @@ const ClassroomHomePage = () => {
                     days will appear here.
                   </p>
                 ) : (
-                  <div className="space-y-4 min-w-0">
-                    {transcripts.map((rec) => {
-                      // Surface "who recorded this" on the classroom variant
-                      // since recordings here can span multiple uploaders;
-                      // the Teacher Profile uses attribution={null}.
+                  <TranscriptList
+                    items={transcripts}
+                    emptyFilteredMessage="No transcripts in this date range."
+                    renderItem={(rec) => {
                       const attribution = `Recorded by: ${rec.teacherName || rec.uploadedBy || "—"}`;
                       const onDelete = canDeleteRecording(rec)
                         ? () => deleteRecording(rec)
@@ -600,6 +600,7 @@ const ClassroomHomePage = () => {
                           date={rec.date}
                           activity={rec.activity}
                           activityContext={rec.activityContext}
+                          location={rec.location}
                           attribution={attribution}
                           durationSeconds={rec.durationSeconds}
                           wordCount={rec.wordCount}
@@ -611,8 +612,8 @@ const ClassroomHomePage = () => {
                           onDelete={onDelete}
                         />
                       );
-                    })}
-                  </div>
+                    }}
+                  />
                 )}
               </div>
             </div>

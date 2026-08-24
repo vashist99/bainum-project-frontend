@@ -108,7 +108,7 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
     ...(isParent() ? [
       {
         icon: Radio,
-        label: "Home",
+        label: "Home Environment Data",
         href: "/home/recording",
         helpKey: "nav.homeRecording",
         isActive: currentPath.startsWith("/home/recording"),
@@ -163,7 +163,7 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
     ...(!isParent() && !isCoach() ? [
       {
         icon: BarChart3,
-        label: "Home",
+        label: "Home Environment Data",
         href: "/data",
         helpKey: "nav.home",
         isActive: currentPath.startsWith("/data")

@@ -8,6 +8,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { LanguageDevelopmentCharts } from "../components/LanguageDevelopmentCharts";
 import ClassroomUploadModal from "../components/ClassroomUploadModal";
 import TranscriptRecordCard from "../components/TranscriptRecordCard.jsx";
+import TranscriptList from "../components/TranscriptList.jsx";
 import { buildTranscriptsWorkbook } from "../utils/classroomExcel";
 
 const TeacherProfilePage = () => {
@@ -53,7 +54,6 @@ const TeacherProfilePage = () => {
   };
 
   const handleDeleteTeacherAssessment = async (assessmentId) => {
-    if (!window.confirm("Are you sure you want to delete this transcript? This will remove it from the dot matrix and dials, and recalculate thresholds.")) return;
     try {
       await axios.delete(`/api/assessments/teacher/${assessmentId}`);
       toast.success("Transcript deleted successfully");
@@ -124,11 +124,11 @@ const TeacherProfilePage = () => {
   return (
     <AppLayout>
       <div className="container mx-auto p-6 max-w-6xl">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-6">
+          <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             My Classroom Talk Data
           </h1>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="form-control">
               <select
                 className="select select-bordered select-primary"
@@ -141,7 +141,7 @@ const TeacherProfilePage = () => {
             </div>
             <button onClick={() => setShowUploadModal(true)} className="btn btn-primary gap-2">
               <Mic className="w-5 h-5" />
-              Upload Recording
+              Record
             </button>
           </div>
         </div>
@@ -149,27 +149,27 @@ const TeacherProfilePage = () => {
         <div className="card bg-base-100 shadow-xl mb-6">
           <div className="card-body">
             <h2 className="card-title text-2xl mb-4">Profile</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="stat bg-base-200 rounded-lg">
-                <div className="stat-figure text-primary">
-                  <User className="w-8 h-8" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="rounded-lg bg-base-200 p-4 flex items-start gap-3 min-w-0">
+                <User className="w-6 h-6 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="text-xs text-base-content/60">Name</p>
+                  <p className="font-semibold text-lg break-words">{teacher?.name || user?.name || "N/A"}</p>
                 </div>
-                <div className="stat-title">Name</div>
-                <div className="stat-value text-2xl">{teacher?.name || user?.name || "N/A"}</div>
               </div>
-              <div className="stat bg-base-200 rounded-lg">
-                <div className="stat-figure text-secondary">
-                  <Mail className="w-8 h-8" />
+              <div className="rounded-lg bg-base-200 p-4 flex items-start gap-3 min-w-0">
+                <Mail className="w-6 h-6 text-secondary shrink-0 mt-0.5" aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="text-xs text-base-content/60">Email</p>
+                  <p className="font-semibold text-base break-all">{teacher?.email || user?.email || "N/A"}</p>
                 </div>
-                <div className="stat-title">Email</div>
-                <div className="stat-value text-lg">{teacher?.email || user?.email || "N/A"}</div>
               </div>
-              <div className="stat bg-base-200 rounded-lg">
-                <div className="stat-figure text-accent">
-                  <Building2 className="w-8 h-8" />
+              <div className="rounded-lg bg-base-200 p-4 flex items-start gap-3 min-w-0">
+                <Building2 className="w-6 h-6 text-accent shrink-0 mt-0.5" aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="text-xs text-base-content/60">School</p>
+                  <p className="font-semibold text-lg break-words">{teacher?.center || "N/A"}</p>
                 </div>
-                <div className="stat-title">School</div>
-                <div className="stat-value text-2xl">{teacher?.center || "N/A"}</div>
               </div>
             </div>
           </div>
@@ -186,9 +186,9 @@ const TeacherProfilePage = () => {
 
         <div className="card bg-base-100 shadow-xl mb-6">
           <div className="card-body">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
               <h2 className="card-title text-2xl flex items-center gap-2">
-                <FileText className="w-6 h-6 text-primary" />
+                <FileText className="w-6 h-6 text-primary shrink-0" />
                 Transcripts
               </h2>
               {transcriptsWithContent.length > 0 && (
@@ -215,16 +215,19 @@ const TeacherProfilePage = () => {
                 <span>No transcripts yet. Upload a classroom recording to get started.</span>
               </div>
             ) : (
-              <div className="space-y-4 min-w-0">
-                {[...transcriptsWithContent]
-                  .sort((a, b) => new Date(b.date) - new Date(a.date))
-                  .map((assessment) => (
+              <TranscriptList
+                items={[...transcriptsWithContent].sort(
+                  (a, b) => new Date(b.date) - new Date(a.date)
+                )}
+                emptyFilteredMessage="No transcripts in this date range."
+                renderItem={(assessment) => (
                     <TranscriptRecordCard
                       key={assessment._id}
                       id={String(assessment._id)}
                       date={assessment.date}
                       activity={assessment.activity}
                       activityContext={assessment.activityContext}
+                      location={assessment.location}
                       durationSeconds={assessment.durationSeconds}
                       wordCount={assessment.wordCount}
                       wordsPerMinute={assessment.wordsPerMinute}
@@ -234,8 +237,8 @@ const TeacherProfilePage = () => {
                       ragSegments={assessment.ragSegments}
                       onDelete={() => handleDeleteTeacherAssessment(assessment._id)}
                     />
-                  ))}
-              </div>
+                )}
+              />
             )}
           </div>
         </div>

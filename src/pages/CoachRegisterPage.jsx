@@ -56,6 +56,10 @@ const CoachRegisterPage = () => {
       toast.error("Passwords do not match");
       return false;
     }
+    if (!termsAccepted) {
+      toast.error("You must accept the Terms and Conditions to create an account");
+      return false;
+    }
     return true;
   };
 

@@ -42,6 +42,17 @@ describe("TranscriptRecordCard — required fields", () => {
         assert.match(html, /overflow-y-auto/);
     });
 
+    test("collapses the transcript behind a details/summary control by default", () => {
+        const html = render(BASE_PROPS);
+        assert.match(html, /<details/);
+        assert.doesNotMatch(html, /<details[^>]*\sopen[\s>=]/);
+        assert.match(html, /<summary/);
+        assert.match(html, /Click to expand transcript/);
+        assert.match(html, /Click to collapse/);
+        // Body text stays in the markup so expanding needs no extra fetch.
+        assert.match(html, /dinosaur fossil/);
+    });
+
     test("falls back to em-dash when date is missing or unparsable", () => {
         const html = render({ ...BASE_PROPS, date: "not-a-date" });
         assert.match(html, /—/);
@@ -112,6 +123,19 @@ describe("TranscriptRecordCard — attribution badge (classroom use-case)", () =
     test("omits the attribution badge when not provided", () => {
         const html = render(BASE_PROPS);
         assert.doesNotMatch(html, /Recorded for/);
+    });
+});
+
+describe("TranscriptRecordCard — location badge", () => {
+    test("renders the location when provided", () => {
+        const html = render({ ...BASE_PROPS, location: "Kitchen" });
+        assert.match(html, /Kitchen/);
+        assert.match(html, /Recording location/);
+    });
+
+    test("omits the location badge when not provided", () => {
+        const html = render(BASE_PROPS);
+        assert.doesNotMatch(html, /Recording location/);
     });
 });
 
@@ -203,19 +227,22 @@ describe("TranscriptRecordCard — per-category word-count badges", () => {
 });
 
 describe("TranscriptRecordCard — mobile-friendly layout", () => {
-    test("uses responsive header stack and break-words on transcript body", () => {
+    test("keeps the delete control on the header row and lets badges wrap", () => {
         const html = render({
             ...BASE_PROPS,
             activity: "Very long circle time activity label",
             onDelete: () => {},
             categoryWordCount: { science: 26, social: 17, literature: 9, language: 68 },
         });
-        assert.match(html, /flex-col/);
-        assert.match(html, /sm:flex-row/);
+        assert.match(html, /flex items-start gap-2 min-w-0/);
+        assert.match(html, /flex-1 min-w-0/);
+        assert.match(html, /flex flex-wrap items-center gap-1.5/);
         assert.match(html, /break-words/);
         assert.match(html, /min-h-11/);
         assert.match(html, /min-w-11/);
+        assert.match(html, /shrink-0/);
         assert.doesNotMatch(html, /w-\[320px\]/);
+        assert.doesNotMatch(html, /self-end/);
     });
 
     test("card root does not force a fixed viewport width", () => {

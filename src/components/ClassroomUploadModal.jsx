@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Mic, Upload, Calendar, FileText, Check, X } from "lucide-react";
 import axios from "../lib/axios";
-import { reportTranscriptRejected } from "../lib/activityLogApi.js";
 import { schoolsFromListResponse } from "../utils/schools.js";
 import toast from "react-hot-toast";
 import { highlightRAGSegments, getSegmentsForHighlighting } from "../utils/ragHighlightSegments.js";
@@ -9,7 +8,11 @@ import { RAGColorLegend } from "../utils/RAGColorLegend.jsx";
 import { getActivityGroupsForRole } from "../utils/activities.js";
 import { getLocationsForRole, getDefaultLocationForRole } from "../utils/locations.js";
 import VettedLabelSelect from "./VettedLabelSelect.jsx";
-import InfoTip from "./InfoTip.jsx";
+import LiveAudioCapture from "./LiveAudioCapture.jsx";
+import useAudioRecorder, {
+  MAX_FILE_BYTES,
+  fileFromRecordingBlob,
+} from "../hooks/useAudioRecorder.js";
 
 const PROCESSING_MESSAGES = [
   { text: "Uploading your audio file...", icon: "📤" },
@@ -31,6 +34,7 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
   const [selectedTeacher, setSelectedTeacher] = useState(preselectedTeacherId || "");
   const isTeacherPreselected = !!(preselectedTeacherId && preselectedCenter);
   const [audioFile, setAudioFile] = useState(null);
+  const recorder = useAudioRecorder();
   const [recordingDate, setRecordingDate] = useState(new Date().toISOString().split("T")[0]);
   // Classroom recordings are always school-context; custom entries are AI-vetted.
   const [activityState, setActivityState] = useState({ value: "", ready: false });
@@ -79,15 +83,40 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
     return () => clearInterval(interval);
   }, [uploading]);
 
+  const audioPreviewUrl = useMemo(() => {
+    if (recorder.audioBlob) return URL.createObjectURL(recorder.audioBlob);
+    if (audioFile) return URL.createObjectURL(audioFile);
+    return null;
+  }, [recorder.audioBlob, audioFile]);
+
+  useEffect(() => {
+    return () => {
+      if (audioPreviewUrl) URL.revokeObjectURL(audioPreviewUrl);
+    };
+  }, [audioPreviewUrl]);
+
+  const hasAudio = Boolean(recorder.audioBlob || audioFile);
+
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 25 * 1024 * 1024) {
+      if (file.size > MAX_FILE_BYTES) {
         toast.error("File size must be less than 25MB");
         return;
       }
+      recorder.clear();
       setAudioFile(file);
     }
+  };
+
+  const handleStartRecording = async () => {
+    setAudioFile(null);
+    await recorder.start();
+  };
+
+  const handleClearAudio = () => {
+    recorder.clear();
+    setAudioFile(null);
   };
 
   const handleCancelProcessing = () => {
@@ -98,8 +127,8 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
   };
 
   const handleUpload = async () => {
-    if (!audioFile) {
-      toast.error("Please select an audio file");
+    if (!hasAudio) {
+      toast.error("Please record or select an audio file");
       return;
     }
     if (isAdmin && !isTeacherPreselected && !selectedTeacher) {
@@ -127,7 +156,10 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
     abortControllerRef.current = new AbortController();
     try {
       const formData = new FormData();
-      formData.append("audio", audioFile);
+      const audio = recorder.audioBlob
+        ? fileFromRecordingBlob(recorder.audioBlob, recorder.audioBlobMime)
+        : audioFile;
+      formData.append("audio", audio);
       formData.append("recordingDate", recordingDate);
       // Classroom-scoped recording: the backend authorizes (lead/assistant/
       // admin), stamps classroomId on the draft, and the accept payload then
@@ -157,6 +189,7 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
         });
         setShowTranscriptModal(true);
         setAudioFile(null);
+        recorder.clear();
       } else {
         toast.error("No transcript received from server");
       }
@@ -181,7 +214,12 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
         payload.teacherId = payload.teacherId.toString?.() || payload.teacherId;
       }
       const response = await axios.post("/api/assessments/teacher/accept", payload);
-      toast.success(response.data?.message || "Assessment saved successfully!");
+      const childCount = response.data?.childCount ?? 0;
+      toast.success(
+        childCount > 0
+          ? `Assessment saved for the teacher and ${childCount} child${childCount === 1 ? "" : "ren"}.`
+          : "Assessment saved successfully!"
+      );
       setShowTranscriptModal(false);
       setPendingTranscript(null);
       setPendingAssessment(null);
@@ -196,8 +234,6 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
   };
 
   const handleReject = () => {
-    // Self-report for the admin activity log.
-    reportTranscriptRejected(pendingAssessment?.activity || "");
     setShowTranscriptModal(false);
     setPendingTranscript(null);
     setPendingAssessment(null);
@@ -205,10 +241,11 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
   };
 
   const handleClose = () => {
-    if (!uploading) {
-      setAudioFile(null);
-      onClose?.();
-    }
+    if (uploading) return;
+    recorder.stop();
+    setAudioFile(null);
+    recorder.clear();
+    onClose?.();
   };
 
   if (showTranscriptModal && pendingTranscript) {
@@ -235,10 +272,7 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
           <div className="divider my-2" />
           <div className="mb-4">
             <label className="label py-1">
-              <span className="label-text font-semibold flex items-center gap-1">
-                Transcribed Text
-                <InfoTip helpKey="control.transcriptPii" />
-              </span>
+              <span className="label-text font-semibold">Transcribed Text</span>
             </label>
             <div className="bg-base-200 p-3 sm:p-4 rounded-lg border border-base-300 max-h-72 sm:max-h-96 overflow-y-auto">
               {segments.length > 0 ? (
@@ -329,8 +363,11 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
       <div className="modal-box max-w-2xl w-[95vw] sm:w-full max-h-[92vh] overflow-y-auto p-4 sm:p-6">
         <h3 className="font-bold text-xl sm:text-2xl mb-3 sm:mb-4 flex items-center gap-2">
           <Mic className="w-6 h-6 text-primary shrink-0" />
-          Upload Classroom Recording
+          Record Classroom Session
         </h3>
+        <p className="text-sm text-base-content/70 mb-1">
+          Record live with your microphone, or upload an audio file.
+        </p>
         <div className="divider my-2" />
 
         {isAdmin && !isTeacherPreselected && (
@@ -402,23 +439,21 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
           onStateChange={setLocationState}
         />
 
-        <div className="form-control w-full mb-3">
-          <label className="label py-1">
-            <span className="label-text font-semibold">Select Audio File</span>
-            <span className="label-text-alt">Max size: 25MB</span>
-          </label>
-          <input
-            type="file"
-            accept="audio/*,.mp3,.wav,.m4a,.webm,.mp4,.mpeg,.mpga,.oga,.ogg"
-            onChange={handleFileSelect}
-            className="file-input file-input-bordered file-input-primary w-full text-base"
-          />
-          {audioFile && (
-            <p className="text-xs sm:text-sm text-success mt-2 break-words">
-              ✓ Selected: {audioFile.name} ({(audioFile.size / 1024 / 1024).toFixed(2)} MB)
-            </p>
-          )}
-        </div>
+        <LiveAudioCapture
+          recording={recorder.recording}
+          elapsedMs={recorder.elapsedMs}
+          error={recorder.error}
+          showReminder={recorder.showReminder}
+          onDismissReminder={() => recorder.setShowReminder(false)}
+          audioBlob={recorder.audioBlob}
+          audioFile={audioFile}
+          previewUrl={audioPreviewUrl}
+          uploading={uploading}
+          onStart={handleStartRecording}
+          onStop={recorder.stop}
+          onClear={handleClearAudio}
+          onFileSelect={handleFileSelect}
+        />
 
         <div className="form-control w-full mb-3">
           <label className="label py-1">
@@ -466,8 +501,9 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
             onClick={handleUpload}
             className="btn btn-primary gap-2 w-full sm:w-auto"
             disabled={
-              !audioFile ||
+              !hasAudio ||
               uploading ||
+              recorder.recording ||
               (isAdmin && !isTeacherPreselected && !selectedTeacher) ||
               !activityState.value ||
               !activityState.ready ||
@@ -480,7 +516,7 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
             ) : (
               <>
                 <Upload className="w-4 h-4" />
-                Upload & Analyze
+                Process &amp; Review
               </>
             )}
           </button>

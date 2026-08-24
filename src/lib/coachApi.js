@@ -25,8 +25,14 @@ export async function unassignTeacher(coachId, teacherId) {
 
 // --- Public: open self-registration ---
 
-export async function registerCoach({ name, email, username, password }) {
-    const response = await axios.post("/api/auth/register-coach", { name, email, username, password });
+export async function registerCoach({ name, email, username, password, termsAccepted }) {
+    const response = await axios.post("/api/auth/register-coach", {
+        name,
+        email,
+        username,
+        password,
+        termsAccepted,
+    });
     return response.data;
 }
 

@@ -17,10 +17,6 @@ const LoginPage = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  const toggleMode = () => {
-    setIsLogin(!isLogin);
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-base-200 to-secondary/10 p-4">
       <div className="card w-full max-w-md bg-base-100 shadow-2xl border border-base-300 backdrop-blur-sm">
@@ -33,7 +29,7 @@ const LoginPage = () => {
               </div>
             </div>
             <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              {isLogin ? "Welcome Back" : "Create Account"}
+              {isLogin ? "Welcome" : "Create Account"}
             </h2>
             <p className="text-base-content/60 mt-2">
               {isLogin
@@ -42,33 +38,45 @@ const LoginPage = () => {
             </p>
           </div>
 
-          {/* Form */}
-          {isLogin ? <LoginForm /> : <SignupForm />}
-
-          {/* Toggle Between Login/Signup */}
-          <div className="divider text-base-content/40">OR</div>
-          <div className="text-center">
-            <p className="text-base-content/60">
-              {isLogin ? "Don't have an account?" : "Already have an account?"}
-              <button
-                type="button"
-                onClick={toggleMode}
-                className="link link-primary ml-1 font-bold hover:scale-105 transition-transform inline-block"
-              >
-                {isLogin ? "Sign Up" : "Sign In"}
-              </button>
-            </p>
-            <p className="text-base-content/60 mt-1 text-sm">
-              Are you a coach?{" "}
-              <button
-                type="button"
-                onClick={() => navigate("/coach/register")}
-                className="link link-secondary font-semibold"
-              >
-                Register as a coach
-              </button>
-            </p>
+          <div className="join w-full mb-6" role="tablist" aria-label="Account">
+            <button
+              type="button"
+              role="tab"
+              id="account-tab-signin"
+              aria-selected={isLogin}
+              aria-controls="account-panel"
+              className={`join-item btn flex-1 ${isLogin ? "btn-primary" : "btn-outline"}`}
+              onClick={() => setIsLogin(true)}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="account-tab-create"
+              aria-selected={!isLogin}
+              aria-controls="account-panel"
+              className={`join-item btn flex-1 ${!isLogin ? "btn-primary" : "btn-outline"}`}
+              onClick={() => setIsLogin(false)}
+            >
+              Create account
+            </button>
           </div>
+
+          <div id="account-panel" role="tabpanel" aria-labelledby={isLogin ? "account-tab-signin" : "account-tab-create"}>
+            {isLogin ? <LoginForm /> : <SignupForm />}
+          </div>
+
+          <p className="text-center text-sm text-base-content/60 mt-4">
+            Are you a coach?{" "}
+            <button
+              type="button"
+              onClick={() => navigate("/coach/register")}
+              className="link link-secondary font-semibold"
+            >
+              Register as a coach
+            </button>
+          </p>
         </div>
       </div>
     </div>

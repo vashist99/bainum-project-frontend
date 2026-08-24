@@ -47,7 +47,7 @@ const HomePage = () => {
                 </div>
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold text-base-content">
-                    Welcome back, {user?.name?.split(' ')[0] || 'User'}!
+                    Welcome, {user?.name?.split(' ')[0] || 'User'}!
                   </h1>
                   <p className="text-base-content/70 mt-1">
                     Here's what's happening in your educational platform today.

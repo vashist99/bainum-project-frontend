@@ -75,7 +75,7 @@ const SignupForm = () => {
       toast.success("Account created successfully!");
 
       // Login user with response data from database
-      login(response.data.user);
+      login(response.data.user || response.data.token);
 
       // Navigate to homepage
       navigate("/home");
@@ -159,14 +159,15 @@ const SignupForm = () => {
           >
             <option value="">Select your role</option>
             <option value="teacher">Teacher</option>
-            <option value="admin">Administrator</option>
             <option value="parent">Parent</option>
+            <option value="admin">Administrator</option>
           </select>
         </div>
         {formData.role === "parent" && (
-          <p className="text-sm text-primary mt-2">
-            Parents register through an invitation link from their child&apos;s teacher. If you have an invitation,{" "}
-            <a href="/parent/register" className="link link-hover font-semibold">use it here</a>.
+          <p className="text-sm text-base-content/70 mt-2">
+            Direct parent signup is available for testing. To link a child, use an invitation
+            from their teacher{" "}
+            <a href="/parent/register" className="link link-hover font-semibold">here</a>.
           </p>
         )}
       </div>

@@ -1,17 +1,17 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import AppLayout from "../components/AppLayout";
-import { ArrowLeft, User, UserRound, Calendar, Languages, Stethoscope, Users, School, ChevronDown, FileText, BookOpen, MessageCircle, Microscope, Brain, Trash2, Download, Mail, Lock } from "lucide-react";
+import { ArrowLeft, User, UserRound, Calendar, Languages, Stethoscope, Users, School, ChevronDown, FileText, BookOpen, MessageCircle, Microscope, Brain, Download, Mail, Lock } from "lucide-react";
 import { LanguageDevelopmentCharts } from "../components/LanguageDevelopmentCharts";
 import axios from "../lib/axios";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import { getPrimaryChildId, parentHasAccessToChild } from "../utils/parentChildren.js";
-import { highlightRAGSegments, getSegmentsForHighlighting } from "../utils/ragHighlightSegments.js";
-import { RAGColorLegend } from "../utils/RAGColorLegend.jsx";
 import { classroomRefId, classroomRefName } from "../utils/classroomMembershipUi.js";
 import { compareAssessmentsNewestFirst } from "../utils/assessmentSort.js";
 import NotesSection from "../components/NotesSection.jsx";
+import TranscriptRecordCard from "../components/TranscriptRecordCard.jsx";
+import TranscriptList from "../components/TranscriptList.jsx";
 import HomeTalkSharingPanel from "../components/HomeTalkSharingPanel.jsx";
 import HomeTranscriptAccessPanel from "../components/HomeTranscriptAccessPanel.jsx";
 import { fetchHomeAccessState, requestHomeAccess } from "../lib/homeAccessApi.js";
@@ -296,7 +296,6 @@ const ChildDataPage = () => {
   };
 
   const handleDeleteChildAssessment = async (assessmentId) => {
-    if (!window.confirm("Are you sure you want to delete this transcript? This will remove it from the dot matrix and dials, and recalculate thresholds.")) return;
     try {
       await axios.delete(`/api/assessments/child/${assessmentId}`);
       toast.success("Transcript deleted successfully");
@@ -856,12 +855,12 @@ const ChildDataPage = () => {
         {(isAdmin() || isParent() || isTeacher()) && !staffHomeLocked && canViewTranscripts && (
           <div className="card bg-base-100 shadow-xl mb-6">
             <div className="card-body">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="card-title text-2xl flex items-center gap-2">
-                  <FileText className="w-6 h-6 text-primary" />
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                <h2 className="card-title text-2xl flex items-center gap-2 min-w-0">
+                  <FileText className="w-6 h-6 text-primary shrink-0" />
                   {showFullProfile ? "Home Talk Transcripts" : "Transcripts"}
                 </h2>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <div className="text-sm text-base-content/60">
                     {viewAssessments.filter(a => a.transcript && a.transcript.trim()).length} transcript{viewAssessments.filter(a => a.transcript && a.transcript.trim()).length !== 1 ? 's' : ''} available
                   </div>
@@ -915,125 +914,42 @@ const ChildDataPage = () => {
                   </span>
                 </div>
               ) : (
-                <div className="space-y-4 min-w-0">
-                  {viewAssessments
-                    .filter(a => a.transcript && a.transcript.trim())
-                    .sort(compareAssessmentsNewestFirst)
-                    .map((assessment) => (
-                      <div key={assessment._id} className="card bg-base-200 border border-base-300">
-                        <div className="card-body p-4">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start mb-3">
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-lg flex items-center gap-2 flex-wrap">
-                                <Calendar className="w-4 h-4 shrink-0" />
-                                <span>
-                                  {new Date(assessment.date).toLocaleDateString('en-US', {
-                                    month: 'long',
-                                    day: 'numeric',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </span>
-                                {assessment.activity && (
-                                  <span
-                                    className="badge badge-outline badge-primary badge-sm font-normal"
-                                    title={
-                                      assessment.activityContext === 'school'
-                                        ? 'Activity recorded at school'
-                                        : 'Activity recorded at home'
-                                    }
-                                  >
-                                    {assessment.activity}
-                                  </span>
-                                )}
-                                {assessment.location && (
-                                  <span
-                                    className="badge badge-outline badge-secondary badge-sm font-normal"
-                                    title="Recording location"
-                                  >
-                                    📍 {assessment.location}
-                                  </span>
-                                )}
-                              </h3>
-                              {assessment.uploadedBy && (
-                                <p className="text-sm text-base-content/60 mt-1">
-                                  Uploaded by: {assessment.uploadedBy}
-                                </p>
-                              )}
-                            </div>
-                            {/* Home recordings are parent-managed: staff cannot delete them (enforced server-side). */}
-                            {isParent() && (
-                              <button
-                                onClick={() => handleDeleteChildAssessment(assessment._id)}
-                                className="btn btn-ghost btn-sm btn-circle text-error"
-                                title="Delete transcript"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                          
-                          <div className="bg-base-100 p-4 rounded-lg border border-base-300 max-h-64 overflow-y-auto">
-                            {(() => {
-                              const segments = getSegmentsForHighlighting(assessment.transcript, assessment.ragSegments);
-                              return segments.length > 0 ? (
-                                <>
-                                  <RAGColorLegend />
-                                  <p className="text-sm whitespace-pre-wrap leading-relaxed break-words text-base-content">
-                                    {highlightRAGSegments(assessment.transcript, segments)}
-                                  </p>
-                                </>
-                              ) : (
-                                <p className="text-sm whitespace-pre-wrap leading-relaxed break-words text-base-content">
-                                  {assessment.transcript}
-                                </p>
-                              );
-                            })()}
-                          </div>
-                          
-                          <div className="mt-3 space-y-2">
-                            <div className="flex items-center justify-between text-xs text-base-content/60">
-                              <span>
-                                {assessment.transcript.length} characters • {assessment.transcript.split(/\s+/).filter(w => w.length > 0).length} words
-                                {assessment.durationSeconds != null && (
-                                  <span className="ml-2">
-                                    • {Math.floor(assessment.durationSeconds / 60)} min {Math.round(assessment.durationSeconds % 60)} sec
-                                  </span>
-                                )}
-                              </span>
-                              {assessment.wordsPerMinute != null ? (
-                                <span className="badge badge-sm badge-primary">
-                                  {Math.round(assessment.wordsPerMinute * 10) / 10} WPM
-                                </span>
-                              ) : (
-                                <span className="badge badge-sm badge-ghost">WPM: N/A</span>
-                              )}
-                            </div>
-                            {assessment.categoryWordCount && (
-                              <div className="flex flex-wrap gap-2 text-xs">
-                                {[
-                                  { key: 'science', label: 'Science', color: 'badge-info' },
-                                  { key: 'social', label: 'Social', color: 'badge-success' },
-                                  { key: 'literature', label: 'Literature', color: 'badge-secondary' },
-                                  { key: 'language', label: 'Language', color: 'badge-warning' }
-                                ].map(({ key, label, color }) => {
-                                  const words = assessment.categoryWordCount[key] ?? 0;
-                                  const wpm = assessment.categoryWPM?.[key];
-                                  return (
-                                    <span key={key} className={`badge badge-sm ${color}`}>
-                                      {label}: {words} word{words !== 1 ? 's' : ''}
-                                      {wpm != null ? ` (${Math.round(wpm * 10) / 10} WPM)` : ''}
-                                    </span>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
+                <TranscriptList
+                  items={viewAssessments
+                    .filter((a) => a.transcript && a.transcript.trim())
+                    .sort(compareAssessmentsNewestFirst)}
+                  emptyFilteredMessage="No transcripts in this date range."
+                  renderItem={(assessment) => (
+                    <TranscriptRecordCard
+                      key={assessment._id}
+                      id={String(assessment._id)}
+                      date={assessment.date}
+                      activity={assessment.activity}
+                      activityContext={assessment.activityContext}
+                      location={assessment.location}
+                      attribution={
+                        assessment.uploadedBy
+                          ? `Uploaded by: ${assessment.uploadedBy}`
+                          : undefined
+                      }
+                      durationSeconds={assessment.durationSeconds}
+                      wordCount={
+                        assessment.wordCount ??
+                        assessment.transcript.split(/\s+/).filter((w) => w.length > 0).length
+                      }
+                      wordsPerMinute={assessment.wordsPerMinute}
+                      categoryWPM={assessment.categoryWPM}
+                      categoryWordCount={assessment.categoryWordCount}
+                      transcript={assessment.transcript}
+                      ragSegments={assessment.ragSegments}
+                      onDelete={
+                        isParent()
+                          ? () => handleDeleteChildAssessment(assessment._id)
+                          : undefined
+                      }
+                    />
+                  )}
+                />
               )}
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { Calendar, Trash2 } from "lucide-react";
+import { ChevronDown, MapPin, Trash2 } from "lucide-react";
 import {
     highlightRAGSegments,
     getSegmentsForHighlighting,
@@ -24,6 +24,7 @@ import { RAGColorLegend } from "../utils/RAGColorLegend.jsx";
  *   activityContext?: "home"|"school",
  *   uploadedBy?: string,
  *   attribution?: string|null,
+ *   location?: string,
  *   durationSeconds?: number,
  *   wordCount?: number,
  *   wordsPerMinute?: number,
@@ -40,6 +41,7 @@ export default function TranscriptRecordCard({
     activity,
     activityContext,
     attribution,
+    location,
     durationSeconds,
     wordCount,
     wordsPerMinute,
@@ -67,44 +69,75 @@ export default function TranscriptRecordCard({
     };
 
     return (
-        <div
+        <details
             key={id}
             data-testid="transcript-record-card"
-            className="card bg-base-200 border border-base-300"
+            className="card bg-base-200 border border-base-300 group min-w-0 overflow-hidden"
         >
-            <div className="card-body p-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start mb-2">
+            <summary className="p-3 sm:p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                <div className="flex items-start gap-2 min-w-0">
+                    <ChevronDown
+                        className="w-4 h-4 shrink-0 mt-1 text-base-content/60 transition-transform group-open:rotate-180"
+                        aria-hidden="true"
+                    />
                     <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold flex items-center gap-2 flex-wrap">
-                            <Calendar className="w-4 h-4 shrink-0" aria-hidden="true" />
-                            <span>{formattedDate}</span>
-                            {activity && (
-                                <span
-                                    className="badge badge-outline badge-primary badge-sm font-normal"
-                                    title={
-                                        activityContext === "home"
-                                            ? "Activity recorded at home"
-                                            : "Activity recorded at school"
-                                    }
-                                >
-                                    {activity}
-                                </span>
-                            )}
-                            {attribution && (
-                                <span
-                                    className="badge badge-ghost badge-sm font-normal"
-                                    title={attribution}
-                                >
-                                    {attribution}
-                                </span>
-                            )}
+                        <h3 className="font-semibold text-sm sm:text-base leading-snug break-words">
+                            {formattedDate}
                         </h3>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                {activity && (
+                                    <span
+                                        className="badge badge-outline badge-primary badge-sm font-normal max-w-full truncate"
+                                        title={
+                                            activityContext === "home"
+                                                ? "Activity recorded at home"
+                                                : "Activity recorded at school"
+                                        }
+                                    >
+                                        {activity}
+                                    </span>
+                                )}
+                                {location && (
+                                    <span
+                                        className="badge badge-outline badge-secondary badge-sm font-normal gap-1 max-w-full"
+                                        title="Recording location"
+                                    >
+                                        <MapPin className="w-3 h-3 shrink-0" aria-hidden="true" />
+                                        <span className="truncate">{location}</span>
+                                    </span>
+                                )}
+                                {attribution && (
+                                    <span
+                                        className="text-xs text-base-content/60 min-w-0 break-words"
+                                        title={attribution}
+                                    >
+                                        {attribution}
+                                    </span>
+                                )}
+                                {wordsPerMinute != null ? (
+                                    <span className="badge badge-sm badge-primary">
+                                        {Math.round(wordsPerMinute * 10) / 10} WPM
+                                    </span>
+                                ) : (
+                                    <span className="badge badge-sm badge-ghost">WPM: N/A</span>
+                                )}
+                            </div>
+                        <p className="text-xs text-base-content/60 mt-1.5 group-open:hidden">
+                            Click to expand transcript
+                        </p>
+                        <p className="text-xs text-base-content/60 mt-1.5 hidden group-open:block">
+                            Click to collapse
+                        </p>
                     </div>
                     {typeof onDelete === "function" && (
                         <button
                             type="button"
-                            onClick={handleDelete}
-                            className="btn btn-ghost btn-circle text-error min-h-11 min-w-11 h-11 w-11 self-end sm:self-start shrink-0"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleDelete();
+                            }}
+                            className="btn btn-ghost btn-circle text-error min-h-11 min-w-11 h-11 w-11 shrink-0 -mt-1 -mr-1"
                             title="Delete transcript"
                             aria-label="Delete transcript"
                         >
@@ -112,8 +145,10 @@ export default function TranscriptRecordCard({
                         </button>
                     )}
                 </div>
+            </summary>
 
-                <div className="bg-base-100 p-4 rounded-lg border border-base-300 max-h-64 overflow-y-auto mt-2">
+            <div className="px-3 sm:px-4 pb-4">
+                <div className="bg-base-100 p-3 sm:p-4 rounded-lg border border-base-300 max-h-64 overflow-y-auto">
                     {hasRagHighlights ? (
                         <>
                             <RAGColorLegend />
@@ -150,7 +185,7 @@ export default function TranscriptRecordCard({
                         )}
                         {categoryWPM && (
                             <span
-                                className="text-[10px] text-base-content/60 ml-1"
+                                className="text-[10px] text-base-content/60 ml-1 break-words"
                                 title={`Science: ${categoryWPM.science ?? "—"} | Social: ${categoryWPM.social ?? "—"} | Literature: ${categoryWPM.literature ?? "—"} | Language: ${categoryWPM.language ?? "—"}`}
                             >
                                 Sci {categoryWPM.science ?? "—"} · Soc{" "}
@@ -183,7 +218,7 @@ export default function TranscriptRecordCard({
                     )}
                 </div>
             </div>
-        </div>
+        </details>
     );
 }
 
