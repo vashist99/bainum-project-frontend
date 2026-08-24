@@ -4,6 +4,7 @@ import axios from "../lib/axios";
 import toast from "react-hot-toast";
 import { Mail, Lock, User, Eye, EyeOff, Shield } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import TermsAcceptance from "./TermsAcceptance.jsx";
 
 const SignupForm = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const SignupForm = () => {
     confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const handleInputChange = (e) => {
     setFormData({
@@ -53,6 +55,11 @@ const SignupForm = () => {
       return false;
     }
 
+    if (formData.role === "teacher" && !termsAccepted) {
+      toast.error("You must accept the Terms and Conditions to create an account");
+      return false;
+    }
+
     return true;
   };
 
@@ -70,6 +77,7 @@ const SignupForm = () => {
         email: formData.email,
         password: formData.password,
         role: formData.role,
+        ...(formData.role === "teacher" ? { termsAccepted: true } : {}),
       });
 
       toast.success("Account created successfully!");
@@ -163,10 +171,16 @@ const SignupForm = () => {
             <option value="admin">Administrator</option>
           </select>
         </div>
+        {formData.role === "teacher" && (
+          <p className="text-sm text-base-content/70 mt-2">
+            If you received a teacher invitation email, you can still finish signup{" "}
+            <a href="/teacher/register" className="link link-hover font-semibold">with that link</a>.
+          </p>
+        )}
         {formData.role === "parent" && (
           <p className="text-sm text-base-content/70 mt-2">
-            Direct parent signup is available for testing. To link a child, use an invitation
-            from their teacher{" "}
+            You can create an account here. To link a child, use an invitation from
+            their teacher{" "}
             <a href="/parent/register" className="link link-hover font-semibold">here</a>.
           </p>
         )}
@@ -243,6 +257,10 @@ const SignupForm = () => {
         </div>
       </div>
 
+      {formData.role === "teacher" && (
+        <TermsAcceptance accepted={termsAccepted} onChange={setTermsAccepted} />
+      )}
+
       {/* Submit Button */}
       <div className="form-control mt-6">
         <button
@@ -250,7 +268,7 @@ const SignupForm = () => {
           className={`btn btn-primary w-full text-lg shadow-lg hover:shadow-xl transition-all duration-200 ${
             loading ? "loading" : ""
           }`}
-          disabled={loading}
+          disabled={loading || (formData.role === "teacher" && !termsAccepted)}
         >
           {loading ? (
             <span className="loading loading-spinner"></span>
