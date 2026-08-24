@@ -4,7 +4,6 @@ import axios from "../lib/axios";
 import { schoolsFromListResponse } from "../utils/schools.js";
 import toast from "react-hot-toast";
 import { highlightRAGSegments, getSegmentsForHighlighting } from "../utils/ragHighlightSegments.js";
-import { RAGColorLegend } from "../utils/RAGColorLegend.jsx";
 import { getActivityGroupsForRole } from "../utils/activities.js";
 import { getLocationsForRole, getDefaultLocationForRole } from "../utils/locations.js";
 import VettedLabelSelect from "./VettedLabelSelect.jsx";
@@ -276,12 +275,9 @@ export default function ClassroomUploadModal({ isAdmin, onSuccess, onClose, pres
             </label>
             <div className="bg-base-200 p-3 sm:p-4 rounded-lg border border-base-300 max-h-72 sm:max-h-96 overflow-y-auto">
               {segments.length > 0 ? (
-                <>
-                  <RAGColorLegend />
-                  <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">
-                    {highlightRAGSegments(pendingTranscript, segments)}
-                  </p>
-                </>
+                <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">
+                  {highlightRAGSegments(pendingTranscript, segments)}
+                </p>
               ) : (
                 <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">{pendingTranscript}</p>
               )}

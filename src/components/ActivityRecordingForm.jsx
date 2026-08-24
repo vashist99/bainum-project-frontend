@@ -16,7 +16,6 @@ import {
   highlightRAGSegments,
   getSegmentsForHighlighting,
 } from "../utils/ragHighlightSegments.js";
-import { RAGColorLegend } from "../utils/RAGColorLegend.jsx";
 import { CUSTOM_ACTIVITY_VALUE } from "../utils/activities.js";
 import { getLocationsForRole, getDefaultLocationForRole } from "../utils/locations.js";
 import VettedLabelSelect from "./VettedLabelSelect.jsx";
@@ -342,12 +341,9 @@ export default function ActivityRecordingForm({
             </label>
             <div className="bg-base-200 p-3 sm:p-4 rounded-lg border border-base-300 max-h-60 sm:max-h-72 overflow-y-auto">
               {segments.length > 0 ? (
-                <>
-                  <RAGColorLegend />
-                  <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">
-                    {highlightRAGSegments(transcript, segments)}
-                  </p>
-                </>
+                <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">
+                  {highlightRAGSegments(transcript, segments)}
+                </p>
               ) : (
                 <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">
                   {transcript || <em>(empty transcript)</em>}

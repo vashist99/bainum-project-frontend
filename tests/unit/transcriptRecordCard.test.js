@@ -252,7 +252,7 @@ describe("TranscriptRecordCard — mobile-friendly layout", () => {
 });
 
 describe("TranscriptRecordCard — RAG highlighting", () => {
-    test("renders the RAG legend and highlighted spans when ragSegments is non-empty", () => {
+    test("highlights RAG spans without a per-transcript color legend", () => {
         const ragSegments = [
             {
                 text: "dinosaur",
@@ -263,12 +263,7 @@ describe("TranscriptRecordCard — RAG highlighting", () => {
             },
         ];
         const html = render({ ...BASE_PROPS, ragSegments });
-        // Legend labels (from RAGColorLegend.jsx):
-        assert.match(html, /Science skills/);
-        assert.match(html, /Social emotional skills/);
-        assert.match(html, /Literature skills/);
-        assert.match(html, /Language development skills/);
-        // The highlighted span carries the science color class.
+        assert.doesNotMatch(html, /w-3 h-3 rounded/);
         assert.match(html, /bg-blue-100/);
     });
 

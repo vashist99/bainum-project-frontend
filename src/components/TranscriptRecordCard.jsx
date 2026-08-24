@@ -3,7 +3,6 @@ import {
     highlightRAGSegments,
     getSegmentsForHighlighting,
 } from "../utils/ragHighlightSegments.js";
-import { RAGColorLegend } from "../utils/RAGColorLegend.jsx";
 
 /**
  * Per-recording card used by both `TeacherProfilePage` and
@@ -150,12 +149,9 @@ export default function TranscriptRecordCard({
             <div className="px-3 sm:px-4 pb-4">
                 <div className="bg-base-100 p-3 sm:p-4 rounded-lg border border-base-300 max-h-64 overflow-y-auto">
                     {hasRagHighlights ? (
-                        <>
-                            <RAGColorLegend />
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed break-words">
-                                {highlightRAGSegments(transcript, segments)}
-                            </p>
-                        </>
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed break-words">
+                            {highlightRAGSegments(transcript, segments)}
+                        </p>
                     ) : (
                         <p className="text-sm whitespace-pre-wrap leading-relaxed break-words">
                             {transcript}
