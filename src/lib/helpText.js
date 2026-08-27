@@ -30,6 +30,8 @@ export const HELP_TEXT = Object.freeze({
         "Your teacher profile with your assessments and transcript cards.",
     "nav.settings":
         "Account preferences, including the voice wake feature and other options.",
+    "nav.about":
+        "A picture of who can look at classroom and home talk. Opens on your role; you can switch to any other person. Anyone with the link can open this page.",
 
     // --- Page headers ---
     "page.classrooms":
@@ -38,6 +40,8 @@ export const HELP_TEXT = Object.freeze({
         "Teacher directory. Add teachers, send invitations, filter by school, and open a teacher to edit their profile.",
     "page.coaches":
         "Coaches join the platform on their own — no invitation needed. Assign each coach the teachers they oversee; classroom access still requires teacher approval, and transcript access is admin-gated.",
+    "page.about":
+        "Anyone with the link can open this page. Use View as to highlight one person on the picture.",
 
     // --- Key actions / panels ---
     "control.viewMode":

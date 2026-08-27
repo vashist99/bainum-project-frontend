@@ -23,6 +23,7 @@ import CreateClassroomForm from './pages/CreateClassroomForm';
 import ClassroomHomePage from './pages/ClassroomHomePage';
 import ParentHomeRecordingPage from './pages/ParentHomeRecordingPage';
 import SettingsPage from './pages/SettingsPage';
+import AboutPage from './pages/AboutPage';
 import CoachesPage from './pages/CoachesPage';
 import CoachRegisterPage from './pages/CoachRegisterPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -119,6 +120,7 @@ const App = () => {
           <SettingsPage />
         </ProtectedRoute>
       } />
+      <Route path="/about" element={<AboutPage />} />
       <Route path="/profile" element={
         <ProtectedRoute requiredRole="teacher">
           <TeacherProfilePage />

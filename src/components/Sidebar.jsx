@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import {
-  Home, Users, Building2, BarChart3, UserCircle, Settings,
+  Home, Users, Building2, BarChart3, UserCircle, Settings, CircleHelp,
   LogOut, X, ChevronDown, ChevronRight, School, Radio, ClipboardList
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
@@ -281,6 +281,13 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
                 helpKey="nav.settings"
                 href="/settings"
                 isActive={currentPath === "/settings"}
+              />
+              <SidebarItem
+                icon={CircleHelp}
+                label="About"
+                helpKey="nav.about"
+                href="/about"
+                isActive={currentPath.startsWith("/about")}
               />
               <SidebarItem
                 icon={LogOut}

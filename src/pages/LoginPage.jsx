@@ -68,6 +68,16 @@ const LoginPage = () => {
           </div>
 
           <p className="text-center text-sm text-base-content/60 mt-4">
+            How does access work?{" "}
+            <button
+              type="button"
+              onClick={() => navigate("/about")}
+              className="link link-secondary font-semibold"
+            >
+              View the About diagram
+            </button>
+          </p>
+          <p className="text-center text-sm text-base-content/60 mt-2">
             Are you a coach?{" "}
             <button
               type="button"
