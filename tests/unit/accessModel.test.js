@@ -62,11 +62,13 @@ describe("accessModel", () => {
         }
         const ids = PATHS.map((path) => path.id);
         assert.ok(ids.includes("record-classroom"));
+        assert.ok(ids.includes("record-classroom-coach"));
         assert.ok(ids.includes("record-home"));
         assert.ok(ids.includes("ask-to-look"));
         assert.ok(ids.includes("share-staff"));
         assert.ok(ids.includes("turns-on-words"));
         assert.equal(PATHS.find((path) => path.id === "record-classroom").from, "teacher");
+        assert.equal(PATHS.find((path) => path.id === "record-classroom-coach").from, "coach");
         assert.equal(PATHS.find((path) => path.id === "ask-to-look").from, "coach");
         assert.equal(PATHS.find((path) => path.id === "turns-on-words").from, "admin");
     });
@@ -110,6 +112,9 @@ describe("accessModel", () => {
             assert.ok(actor.job.trim().length > 0, `${actor.id} job`);
             assert.ok(actor.icon.trim().length > 0, `${actor.id} icon`);
         }
+        const coach = ACTORS.find((actor) => actor.id === "coach");
+        assert.match(coach.job, /records/i);
+        assert.match(coach.job, /looks at class talk/i);
     });
 
     test("join note is stated once and covers testing signup", () => {

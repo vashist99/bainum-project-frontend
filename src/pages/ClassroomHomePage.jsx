@@ -115,9 +115,12 @@ const ClassroomHomePage = () => {
   const isCoachView = classroom?.role === "coach";
   const isReadOnlyView = isParentView || isCoachView;
   const coachHasTranscriptAccess = classroom?.coachTranscriptAccess === true;
-  // Classroom recording is teacher-only: admins lost the upload affordance
-  // (add-coach-role change), coaches and parents never had it here.
-  const canRecord = classroom?.role === "lead" || classroom?.role === "assistant";
+  // Lead/assistant teachers, plus a coach who already holds an active grant
+  // (the backend only returns role "coach" when the grant is active).
+  const canRecord =
+    classroom?.role === "lead" ||
+    classroom?.role === "assistant" ||
+    classroom?.role === "coach";
   // Show the Delete-classroom button only to admins + the classroom's
   // lead teacher (matches DELETE /api/classrooms/:id authorization).
   const canDelete = (() => {
@@ -354,15 +357,17 @@ const ClassroomHomePage = () => {
                 </div>
               </div>
 
-              {!isReadOnlyView && (
+              {(canRecord || !isReadOnlyView) && (
                 <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-                  <button
-                    onClick={() => setShowAddParentsModal(true)}
-                    className="btn btn-outline btn-primary gap-2 w-full sm:w-auto"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    Add Parents
-                  </button>
+                  {!isReadOnlyView && (
+                    <button
+                      onClick={() => setShowAddParentsModal(true)}
+                      className="btn btn-outline btn-primary gap-2 w-full sm:w-auto"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Add Parents
+                    </button>
+                  )}
                   {canRecord && (
                     <button
                       onClick={() => setShowRecordModal(true)}
@@ -495,33 +500,33 @@ const ClassroomHomePage = () => {
                   </div>
                   <h3 className="card-title">No recordings yet</h3>
                   <p className="text-base-content/70 max-w-md">
-                    {isReadOnlyView
+                    {canRecord
+                      ? "Record a classroom session to see aggregated language development data for this classroom."
+                      : isReadOnlyView
                       ? "No classroom recordings yet. Recordings made in this classroom will appear here."
                       : classroom.children?.length > 0
                       ? "Record a classroom session to see aggregated language development data for this classroom."
                       : "Add parents to enroll their children in this classroom, then record a session to see aggregated data."}
                   </p>
-                  {!isReadOnlyView && (classroom.children?.length > 0 ? canRecord : true) && (
+                  {canRecord ? (
                     <button
-                      onClick={() =>
-                        classroom.children?.length > 0
-                          ? setShowRecordModal(true)
-                          : setShowAddParentsModal(true)
-                      }
+                      onClick={() => setShowRecordModal(true)}
                       className="btn btn-primary gap-2 mt-3"
                     >
-                      {classroom.children?.length > 0 ? (
-                        <>
-                          <Mic className="w-4 h-4" />
-                          Record Session
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="w-4 h-4" />
-                          Add Parents
-                        </>
-                      )}
+                      <Mic className="w-4 h-4" />
+                      Record Session
                     </button>
+                  ) : (
+                    !isReadOnlyView &&
+                    !(classroom.children?.length > 0) && (
+                      <button
+                        onClick={() => setShowAddParentsModal(true)}
+                        className="btn btn-primary gap-2 mt-3"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        Add Parents
+                      </button>
+                    )
                   )}
                 </div>
               </div>

@@ -53,7 +53,7 @@ export const ACTORS = Object.freeze([
     {
         id: "coach",
         label: "Coach",
-        job: "Looks at class talk",
+        job: "Records and looks at class talk",
         icon: "eye",
         headerClass: "bg-info text-info-content",
         ringClass: "ring-info",
@@ -110,6 +110,15 @@ export const PATHS = Object.freeze([
         toLabel: "Classroom",
         labelKey: "recordsHere",
         actors: Object.freeze(["teacher"]),
+    },
+    {
+        id: "record-classroom-coach",
+        from: "coach",
+        toPlace: "classroom",
+        toColumn: "place",
+        toLabel: "Classroom",
+        labelKey: "recordsHere",
+        actors: Object.freeze(["coach"]),
     },
     {
         id: "record-home",
