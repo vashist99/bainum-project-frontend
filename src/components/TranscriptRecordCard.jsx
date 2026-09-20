@@ -1,38 +1,16 @@
-import { ChevronDown, MapPin, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, MapPin, StickyNote, Trash2 } from "lucide-react";
 import {
     highlightRAGSegments,
     getSegmentsForHighlighting,
 } from "../utils/ragHighlightSegments.js";
+import { observationNoteText } from "../utils/observationCard.js";
+import { previewWriteProps } from "../lib/viewAs.js";
+import InfoTip from "./InfoTip.jsx";
 
 /**
- * Per-recording card used by both `TeacherProfilePage` and
- * `ClassroomHomePage`. Purely presentational — no fetching, no auth.
- *
- * The Delete button is rendered iff `onDelete` is a function; the
- * caller owns the authorization decision and wires the right backend
- * endpoint. The component wraps the call in a `window.confirm(...)`
- * prompt matching the wording the Teacher-Profile already uses.
- *
- * All optional props degrade gracefully when missing — the card always
- * at least shows the date and the transcript body.
- *
- * @param {{
- *   id: string,
- *   date: string|Date,
- *   activity?: string,
- *   activityContext?: "home"|"school",
- *   uploadedBy?: string,
- *   attribution?: string|null,
- *   location?: string,
- *   durationSeconds?: number,
- *   wordCount?: number,
- *   wordsPerMinute?: number,
- *   categoryWPM?: { science?: number, social?: number, literature?: number, language?: number },
- *   categoryWordCount?: { science?: number, social?: number, literature?: number, language?: number },
- *   transcript: string,
- *   ragSegments?: Array,
- *   onDelete?: () => void | Promise<void>,
- * }} props
+ * Per-recording card used by classroom, child, and teacher profile pages.
+ * Purely presentational — callers own fetch/auth and pass note/hide handlers.
  */
 export default function TranscriptRecordCard({
     id,
@@ -49,11 +27,19 @@ export default function TranscriptRecordCard({
     transcript,
     ragSegments,
     onDelete,
+    observationNote,
+    hidden,
+    canHide,
+    isPreviewing = false,
+    onSaveNote,
+    onToggleHidden,
 }) {
     const segments = getSegmentsForHighlighting(transcript, ragSegments);
     const hasRagHighlights = Array.isArray(segments) && segments.length > 0;
-
     const formattedDate = formatDate(date);
+    const noteText = observationNoteText(observationNote);
+    const [noteOpen, setNoteOpen] = useState(false);
+    const [draft, setDraft] = useState(noteText);
 
     const handleDelete = () => {
         if (typeof onDelete !== "function") return;
@@ -65,6 +51,21 @@ export default function TranscriptRecordCard({
             return;
         }
         onDelete();
+    };
+
+    const openNotes = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDraft(observationNoteText(observationNote));
+        setNoteOpen(true);
+    };
+
+    const closeNotes = () => setNoteOpen(false);
+
+    const saveNotes = async () => {
+        if (typeof onSaveNote !== "function") return;
+        await onSaveNote(draft);
+        setNoteOpen(false);
     };
 
     return (
@@ -111,6 +112,11 @@ export default function TranscriptRecordCard({
                                         title={attribution}
                                     >
                                         {attribution}
+                                    </span>
+                                )}
+                                {hidden && (
+                                    <span className="badge badge-sm badge-warning font-normal">
+                                        Hidden
                                     </span>
                                 )}
                                 {wordsPerMinute != null ? (
@@ -212,8 +218,92 @@ export default function TranscriptRecordCard({
                             })}
                         </div>
                     )}
+                    {noteText && (
+                        <p className="text-xs text-base-content/70 italic break-words">
+                            Note: {noteText}
+                        </p>
+                    )}
+                    {(typeof onSaveNote === "function" || canHide) && (
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                            {typeof onSaveNote === "function" && (
+                                <span className="inline-flex items-center gap-1">
+                                    <button
+                                        type="button"
+                                        className="btn btn-ghost btn-sm gap-1.5 min-h-11"
+                                        onClick={openNotes}
+                                        {...previewWriteProps(isPreviewing)}
+                                    >
+                                        <StickyNote className="w-3.5 h-3.5" aria-hidden="true" />
+                                        Take Notes
+                                    </button>
+                                    <InfoTip helpKey="control.takeNotes" />
+                                </span>
+                            )}
+                            {canHide && (
+                                <label className="label cursor-pointer gap-2 py-0 min-h-11">
+                                    <span className="label-text text-sm">Hide Observation</span>
+                                    <InfoTip helpKey="control.hideObservation" />
+                                    <input
+                                        type="checkbox"
+                                        className="toggle toggle-sm"
+                                        checked={!!hidden}
+                                        aria-label="Hide Observation"
+                                        {...previewWriteProps(isPreviewing, {
+                                            onChange: (e) => {
+                                                if (typeof onToggleHidden === "function") {
+                                                    onToggleHidden(e.target.checked);
+                                                }
+                                            },
+                                        })}
+                                    />
+                                </label>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {noteOpen && (
+                <div className="modal modal-open" role="dialog" aria-labelledby={`note-title-${id}`}>
+                    <div className="modal-box">
+                        <h3 id={`note-title-${id}`} className="font-bold text-lg">
+                            Take Notes
+                        </h3>
+                        <p className="text-sm text-base-content/70 mt-1">
+                            One shared note for this recording. The latest save replaces the previous text.
+                        </p>
+                        <textarea
+                            className="textarea textarea-bordered w-full min-h-32 mt-3"
+                            value={draft}
+                            onChange={(e) => setDraft(e.target.value)}
+                            maxLength={4000}
+                            aria-label="Observation note"
+                            {...previewWriteProps(isPreviewing)}
+                        />
+                        {observationNote?.authorName && observationNote?.updatedAt && (
+                            <p className="text-xs text-base-content/50 mt-2">
+                                Last edited by {observationNote.authorName}
+                            </p>
+                        )}
+                        <div className="modal-action">
+                            <button type="button" className="btn btn-ghost" onClick={closeNotes}>
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={saveNotes}
+                                {...previewWriteProps(isPreviewing)}
+                            >
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" className="modal-backdrop" onClick={closeNotes}>
+                        close
+                    </button>
+                </div>
+            )}
         </details>
     );
 }

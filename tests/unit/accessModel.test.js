@@ -64,32 +64,45 @@ describe("accessModel", () => {
         assert.ok(ids.includes("record-classroom"));
         assert.ok(ids.includes("record-classroom-coach"));
         assert.ok(ids.includes("record-home"));
-        assert.ok(ids.includes("ask-to-look"));
-        assert.ok(ids.includes("share-staff"));
+        assert.ok(ids.includes("classroom-contact"));
+        assert.ok(ids.includes("classroom-parent"));
+        assert.ok(ids.includes("home-contact"));
+        assert.ok(ids.includes("home-contact-coach"));
         assert.ok(ids.includes("turns-on-words"));
         assert.equal(PATHS.find((path) => path.id === "record-classroom").from, "teacher");
         assert.equal(PATHS.find((path) => path.id === "record-classroom-coach").from, "coach");
-        assert.equal(PATHS.find((path) => path.id === "ask-to-look").from, "coach");
+        assert.equal(PATHS.find((path) => path.id === "classroom-contact").from, "coach");
+        assert.equal(PATHS.find((path) => path.id === "classroom-parent").from, "parent");
+        assert.equal(PATHS.find((path) => path.id === "home-contact").from, "teacher");
+        assert.equal(PATHS.find((path) => path.id === "home-contact-coach").from, "coach");
         assert.equal(PATHS.find((path) => path.id === "turns-on-words").from, "admin");
     });
 
-    test("coach home cell is no", () => {
+    test("teacher and coach home charts open on classroom contact; words stay admin-gated", () => {
+        const teacherHome = HOME_VIEWERS.find((row) => row.actor === "teacher");
         const coachHome = HOME_VIEWERS.find((row) => row.actor === "coach");
-        assert.ok(coachHome);
-        assert.equal(coachHome.charts, "no");
-        assert.equal(coachHome.transcript, "no");
-        const homeFromCoach = PATHS.filter((path) => path.from === "coach" && path.toPlace === "home");
-        assert.equal(homeFromCoach.length, 0);
+        assert.equal(teacherHome.chartsPath, "home-contact");
+        assert.equal(coachHome.chartsPath, "home-contact-coach");
+        for (const home of [teacherHome, coachHome]) {
+            assert.equal(home.charts, "arrow");
+            assert.equal(home.transcript, "arrow");
+            assert.equal(home.transcriptPath, "turns-on-words");
+            assert.equal(home.transcriptLabelKey, "onlyIfAdminAllows");
+        }
+        assert.match(COPY.sharesAClassroom, /classroom/i);
+        assert.match(COPY.sharesAClassroom, /revoked/i);
     });
 
-    test("home admin transcript is parent share plus admin reading, not self-grant", () => {
+    test("admin charts and words stay always on; staff words stay admin-gated", () => {
         const adminHome = HOME_VIEWERS.find((row) => row.actor === "admin");
-        const teacherHome = HOME_VIEWERS.find((row) => row.actor === "teacher");
-        assert.equal(adminHome.transcriptLabelKey, "onlyIfParentSharesThenAdminReading");
-        assert.equal(teacherHome.transcriptLabelKey, "onlyIfParentSharesThenAdminReading");
-        assert.match(COPY[adminHome.transcriptLabelKey], /parent shares/i);
+        const adminClass = CLASSROOM_VIEWERS.find((row) => row.actor === "admin");
+        assert.equal(adminHome.charts, "yes");
+        assert.equal(adminHome.transcript, "yes");
+        assert.equal(adminClass.charts, "yes");
+        assert.equal(adminClass.transcript, "yes");
         const coachClass = CLASSROOM_VIEWERS.find((row) => row.actor === "coach");
         assert.equal(coachClass.transcriptLabelKey, undefined);
+        assert.equal(coachClass.transcriptPath, "turns-on-words");
     });
 
     test("column glosses are short and stated once in copy", () => {
@@ -97,10 +110,12 @@ describe("accessModel", () => {
         assert.equal(COPY.transcriptGloss, "The actual words.");
         assert.equal(COPY.yes, "Yes");
         assert.equal(COPY.no, "No");
-        assert.match(COPY.onlyIfParentSharesThenAdminReading, /parent shares/i);
-        assert.match(COPY.onlyIfParentSharesThenAdminReading, /admin allows/i);
+        assert.match(COPY.onlyIfAdminAllows, /admin allows/i);
+        assert.match(COPY.unlessLeadTurnsOff, /lead/i);
         assert.equal(COPY.sharesWithStaff, undefined);
-        assert.equal(COPY.turnsOnTheWords, undefined);
+        assert.equal(COPY.letsTeacherAndAdminLook, undefined);
+        assert.equal(COPY.onlyIfParentShares, undefined);
+        assert.equal(COPY.onlyIfParentSharesThenAdminReading, undefined);
     });
 
     test("every actor has a short job line and an icon key", () => {
@@ -126,15 +141,20 @@ describe("accessModel", () => {
         assert.equal(strings.filter((value) => value === JOIN_NOTE).length, 1);
     });
 
-    test("classroom standing readers include admin, teacher, and parent", () => {
+    test("classroom standing readers are admin and teacher; parent and coach are conditional", () => {
         const yes = CLASSROOM_VIEWERS.filter(
             (row) => row.charts === "yes" && row.transcript === "yes"
         ).map((row) => row.actor);
-        assert.deepEqual(yes, ["admin", "teacher", "parent"]);
+        assert.deepEqual(yes, ["admin", "teacher"]);
+        const parent = CLASSROOM_VIEWERS.find((row) => row.actor === "parent");
+        assert.equal(parent.charts, "arrow");
+        assert.equal(parent.transcript, "arrow");
+        assert.equal(parent.chartsPath, "classroom-parent");
+        assert.equal(parent.transcriptPath, "classroom-parent");
         const coach = CLASSROOM_VIEWERS.find((row) => row.actor === "coach");
         assert.equal(coach.charts, "arrow");
         assert.equal(coach.transcript, "arrow");
-        assert.equal(coach.chartsPath, "ask-to-look");
+        assert.equal(coach.chartsPath, "classroom-contact");
         assert.equal(coach.transcriptPath, "turns-on-words");
     });
 

@@ -32,6 +32,7 @@ const FIXTURE_RECORDINGS = [
             literature: 9,
             language: 68,
         },
+        observationNote: { text: "Circle time felt lively." },
     },
     {
         id: "rec-2",
@@ -72,6 +73,7 @@ describe("buildClassroomWorkbook", () => {
             "Literacy WPM",
             "Language Words",
             "Language WPM",
+            "Notes",
         ]);
     });
 
@@ -84,6 +86,7 @@ describe("buildClassroomWorkbook", () => {
             "Uploaded By",
             "Activity",
             "Transcript",
+            "Notes",
         ]);
     });
 
@@ -154,6 +157,20 @@ describe("buildClassroomWorkbook", () => {
         assert.equal(sheet.getCell("D3").value, "");
     });
 
+    test("Notes column is written on both two-sheet tabs", async () => {
+        const wb = buildClassroomWorkbook("Toddler Room", FIXTURE_RECORDINGS);
+        assert.equal(
+            wb.getWorksheet("Recordings").getCell("O2").value,
+            "Circle time felt lively."
+        );
+        assert.equal(
+            wb.getWorksheet("Transcripts").getCell("E2").value,
+            "Circle time felt lively."
+        );
+        assert.equal(wb.getWorksheet("Recordings").getCell("O3").value, "");
+        assert.equal(wb.getWorksheet("Transcripts").getCell("E3").value, "");
+    });
+
     test("handles an empty recordings array gracefully", async () => {
         const wb = buildClassroomWorkbook("Empty Room", []);
         assert.equal(wb.getWorksheet("Recordings").rowCount, 1); // header only
@@ -195,6 +212,7 @@ const SINGLE_SHEET_FIXTURE = [
             literature: 15,
             language: 127,
         },
+        observationNote: { text: "Profile note" },
     },
     {
         date: "2026-04-05T10:00:00.000Z",
@@ -242,6 +260,7 @@ describe("buildTranscriptsWorkbook(single-sheet layout)", () => {
             "Language Words",
             "Language WPM",
             "Transcript",
+            "Notes",
         ]);
     });
 
@@ -291,6 +310,8 @@ describe("buildTranscriptsWorkbook(single-sheet layout)", () => {
             "First line.\nSecond line with newline."
         );
         assert.equal(sheet.getCell("P3").value, ""); // missing → blank string
+        assert.equal(sheet.getCell("Q2").value, "Profile note");
+        assert.equal(sheet.getCell("Q3").value, "");
     });
 
     test("emits one data row per recording", () => {

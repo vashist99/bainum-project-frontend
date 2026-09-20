@@ -15,17 +15,17 @@ export const HELP_TEXT = Object.freeze({
     "nav.teachers":
         "Teachers you can work with. Administrators manage the full directory; coaches see only the teachers they supervise and can invite up to 20.",
     "nav.home":
-        "The home recordings of every child you supervise. Open a child to see their profile, notes, and home talk data. Classroom talk lives on the classroom homepage.",
+        "The home recordings of every child you supervise. Open a child to see their profile and home talk data. Classroom talk lives on the classroom homepage.",
     "nav.coaches":
         "Coach accounts. Coaches register themselves; assign each coach the teachers they oversee and control their classroom data access, including admin-gated transcripts.",
     "nav.schools":
         "Organizational sites. Teachers and children carry a school affiliation used for filtering and classroom enrollment rules.",
     "nav.classrooms":
-        "All classrooms. Open one to see its homepage: roster, parents, notes, transcripts, and cohort stats.",
+        "All classrooms. Open one to see its homepage: roster, parents, transcripts, and cohort stats.",
     "nav.homeRecording":
         "Record or upload home audio for your child. Choose a location and activity, then review the transcript when it is ready.",
     "nav.myChildData":
-        "Your child's home talk only: developmental charts, transcripts (newest first), recording history, and notes.",
+        "Your child's home talk only: developmental charts, transcripts (newest first), and recording history.",
     "nav.myProfile":
         "Your teacher profile with your assessments and transcript cards.",
     "nav.settings":
@@ -41,7 +41,7 @@ export const HELP_TEXT = Object.freeze({
     "page.teachersCoach":
         "Teachers you supervise. Invite a teacher by email (up to 20 assigned plus pending). You cannot add, edit, or delete teacher profiles.",
     "page.coaches":
-        "Coaches join the platform on their own — no invitation needed. Assign each coach the teachers they oversee; classroom access still requires teacher approval, and transcript access is admin-gated.",
+        "Coaches join the platform on their own — no invitation needed. Assign each coach the teachers they oversee; classroom and home charts open automatically, and transcript access is admin-gated.",
     "page.about":
         "Anyone with the link can open this page. Use View as to highlight one person on the picture.",
 
@@ -53,7 +53,7 @@ export const HELP_TEXT = Object.freeze({
     "control.recordActivity":
         "Record up to 60 minutes in the browser or upload an audio file. Pick a location and activity, then review and accept the transcript before it counts as a saved assessment.",
     "control.homeSharing":
-        "Home talk is private to your family by default. Grants share visualizations only — transcript text stays admin-gated — and you can revoke any grant at any time.",
+        "Home charts open for classroom teachers and coaches automatically. Use Currently accessing to turn someone off. Transcript text stays admin-gated.",
     "control.homeTranscriptAccess":
         "Admin-only. A parent's grant shares visualizations only; enable this tier to also expose the child's home transcript text to that staff member.",
     "control.activityLog":
@@ -64,10 +64,16 @@ export const HELP_TEXT = Object.freeze({
         "Permanently removes your profile and sign-in. Classroom recordings, transcripts, and talk analytics you produced are program records and remain on the platform, attributed to your name. This cannot be undone.",
     "control.transcriptPii":
         "Names and other identifiers (phones, emails, addresses) are replaced with labels like [PERSON] or [EMAIL] before you review the transcript. The original wording is not stored.",
+    "control.currentlyAccessing":
+        "Who can see these charts right now. Lead teachers switch classroom parents and coaches; parents switch home teachers and coaches. All administrators can view the page and are not listed by name. Turning charts back on resets transcript words.",
     "control.viewAs":
         "See the platform the way another role does — a general preview, not a specific person's account. Navigation and empty screens change; your sign-in and data access do not. Recording, uploading, and other writes stay off.",
     "control.viewAsBanner":
         "You are looking at a general preview of this role. Exit to return to your own navigation. Nothing you do here is saved as that role.",
+    "control.takeNotes":
+        "Add or replace the shared note on this recording. Anyone who can see the transcript can edit it; the latest save wins. Notes are included when you download Excel.",
+    "control.hideObservation":
+        "Only the person who recorded this session can hide it. Hidden recordings disappear from everyone else's lists, charts, and Excel — including administrators.",
 });
 
 /** Look up help copy for a key; returns null for unknown keys. */

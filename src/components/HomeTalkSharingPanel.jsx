@@ -1,25 +1,19 @@
 import { useState } from "react";
-import { Share2, ShieldCheck, ShieldOff, UserCheck } from "lucide-react";
+import { Share2, ShieldCheck, ShieldOff } from "lucide-react";
 import toast from "react-hot-toast";
 import { grantHomeAccess, revokeHomeAccess } from "../lib/homeAccessApi";
 import InfoTip from "./InfoTip.jsx";
-import {
-    allStaffGrantActive,
-    classroomGrantRows,
-    visiblePendingRequests,
-} from "../utils/homeViewAccess";
+import { allStaffGrantActive } from "../utils/homeViewAccess";
 
 /**
- * Parent-only sharing controls for a child's home talk data: master
- * "all teachers and admins" grant, one row per enrolled classroom
- * (grants that classroom's current lead teacher), and pending staff
- * requests with approve actions.
+ * Parent home sharing: keep the optional all-staff grant, and open
+ * per-person switches in Currently accessing.
  */
 const HomeTalkSharingPanel = ({ childId, state, loading, onChanged }) => {
-    const [busyKey, setBusyKey] = useState(null);
+    const [busy, setBusy] = useState(false);
 
-    const run = async (key, action, successMessage) => {
-        setBusyKey(key);
+    const run = async (action, successMessage) => {
+        setBusy(true);
         try {
             const result = await action();
             toast.success(result?.message || successMessage);
@@ -27,13 +21,11 @@ const HomeTalkSharingPanel = ({ childId, state, loading, onChanged }) => {
         } catch (error) {
             toast.error(error.response?.data?.message || "Something went wrong");
         } finally {
-            setBusyKey(null);
+            setBusy(false);
         }
     };
 
     const masterActive = allStaffGrantActive(state);
-    const classrooms = classroomGrantRows(state);
-    const pendingRequests = visiblePendingRequests(state);
 
     return (
         <div className="card bg-base-100 shadow-xl mb-6 border border-primary/20">
@@ -44,9 +36,8 @@ const HomeTalkSharingPanel = ({ childId, state, loading, onChanged }) => {
                     <InfoTip helpKey="control.homeSharing" />
                 </h2>
                 <p className="text-sm text-base-content/70">
-                    Home recordings are private to your family. Granting access shares talk
-                    visualizations (counts and charts) only — transcripts stay private unless an
-                    admin separately enables transcript access. You can revoke access at any time.
+                    Classroom teachers and coaches see home charts automatically. Use Currently
+                    accessing above to turn a person off. The all-staff grant below is optional.
                 </p>
 
                 {loading ? (
@@ -55,7 +46,6 @@ const HomeTalkSharingPanel = ({ childId, state, loading, onChanged }) => {
                     </div>
                 ) : (
                     <>
-                        {/* Master grant: every teacher and admin */}
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-base-200 rounded-lg mt-2">
                             <div>
                                 <div className="font-semibold flex items-center gap-2">
@@ -69,7 +59,7 @@ const HomeTalkSharingPanel = ({ childId, state, loading, onChanged }) => {
                                 <p className="text-xs text-base-content/60">
                                     {masterActive
                                         ? "Every teacher and admin can currently view this child's home talk visualizations."
-                                        : "Grant every teacher and admin access to this child's home talk visualizations."}
+                                        : "Optional extra grant for every teacher and admin, including people who do not share a classroom."}
                                 </p>
                                 {masterActive && (
                                     <span
@@ -86,125 +76,32 @@ const HomeTalkSharingPanel = ({ childId, state, loading, onChanged }) => {
                                 <button
                                     type="button"
                                     className="btn btn-outline btn-error btn-sm"
-                                    disabled={busyKey !== null}
+                                    disabled={busy}
                                     onClick={() =>
-                                        run("all-staff", () => revokeHomeAccess(childId, { scope: "all-staff" }), "Access revoked")
+                                        run(
+                                            () => revokeHomeAccess(childId, { scope: "all-staff" }),
+                                            "Access revoked"
+                                        )
                                     }
                                 >
-                                    {busyKey === "all-staff" ? "Revoking…" : "Revoke access"}
+                                    {busy ? "Revoking…" : "Revoke access"}
                                 </button>
                             ) : (
                                 <button
                                     type="button"
                                     className="btn btn-primary btn-sm"
-                                    disabled={busyKey !== null}
+                                    disabled={busy}
                                     onClick={() =>
-                                        run("all-staff", () => grantHomeAccess(childId, { scope: "all-staff" }), "Access granted")
+                                        run(
+                                            () => grantHomeAccess(childId, { scope: "all-staff" }),
+                                            "Access granted"
+                                        )
                                     }
                                 >
-                                    {busyKey === "all-staff" ? "Granting…" : "Grant access to all"}
+                                    {busy ? "Granting…" : "Grant access to all"}
                                 </button>
                             )}
                         </div>
-
-                        {/* Per-classroom lead teacher grants */}
-                        {classrooms.length > 0 && (
-                            <div className="mt-3">
-                                <h3 className="font-semibold text-sm mb-2">Classroom lead teachers</h3>
-                                <ul className="space-y-2">
-                                    {classrooms.map((room) => {
-                                        const key = `classroom-${room.classroomId}`;
-                                        const granted = room.status === "active";
-                                        return (
-                                            <li
-                                                key={room.classroomId}
-                                                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-base-200 rounded-lg"
-                                            >
-                                                <div className="min-w-0">
-                                                    <div className="font-medium truncate">{room.classroomName}</div>
-                                                    <p className="text-xs text-base-content/60 truncate">
-                                                        {room.leadTeacherName
-                                                            ? `Lead teacher: ${room.leadTeacherName}`
-                                                            : "No lead teacher assigned"}
-                                                        {granted ? " — can view home talk visualizations" : ""}
-                                                    </p>
-                                                    {granted && (
-                                                        <span
-                                                            className={`badge badge-sm mt-1 ${room.transcriptAccess ? "badge-warning" : "badge-ghost"}`}
-                                                            title="Transcript access is controlled by admins"
-                                                        >
-                                                            {room.transcriptAccess
-                                                                ? "Transcripts: shared (admin-approved)"
-                                                                : "Transcripts: not shared"}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                {room.leadTeacherId &&
-                                                    (granted ? (
-                                                        <button
-                                                            type="button"
-                                                            className="btn btn-outline btn-error btn-sm"
-                                                            disabled={busyKey !== null}
-                                                            onClick={() =>
-                                                                run(key, () => revokeHomeAccess(childId, { grantId: room.grantId }), "Access revoked")
-                                                            }
-                                                        >
-                                                            {busyKey === key ? "Revoking…" : "Revoke access"}
-                                                        </button>
-                                                    ) : (
-                                                        <button
-                                                            type="button"
-                                                            className="btn btn-primary btn-sm"
-                                                            disabled={busyKey !== null}
-                                                            onClick={() =>
-                                                                run(key, () => grantHomeAccess(childId, { classroomId: room.classroomId }), "Access granted")
-                                                            }
-                                                        >
-                                                            {busyKey === key ? "Granting…" : "Grant access"}
-                                                        </button>
-                                                    ))}
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        )}
-
-                        {/* Pending staff requests */}
-                        {pendingRequests.length > 0 && (
-                            <div className="mt-3">
-                                <h3 className="font-semibold text-sm mb-2">Access requests</h3>
-                                <ul className="space-y-2">
-                                    {pendingRequests.map((request) => {
-                                        const key = `request-${request.grantId}`;
-                                        return (
-                                            <li
-                                                key={request.grantId}
-                                                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-warning/10 border border-warning/30 rounded-lg"
-                                            >
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    <UserCheck className="w-4 h-4 text-warning shrink-0" />
-                                                    <span className="text-sm truncate">
-                                                        <span className="font-medium">{request.granteeName}</span>{" "}
-                                                        ({request.granteeRole}) requested access to home talk data
-                                                    </span>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-primary btn-sm"
-                                                    disabled={busyKey !== null}
-                                                    onClick={() =>
-                                                        run(key, () => grantHomeAccess(childId, { grantId: request.grantId }), "Access granted")
-                                                    }
-                                                >
-                                                    {busyKey === key ? "Granting…" : "Grant access"}
-                                                </button>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        )}
                     </>
                 )}
             </div>

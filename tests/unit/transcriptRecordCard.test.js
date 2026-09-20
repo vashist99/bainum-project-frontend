@@ -251,6 +251,45 @@ describe("TranscriptRecordCard — mobile-friendly layout", () => {
     });
 });
 
+describe("TranscriptRecordCard — notes and hide", () => {
+    test("does not render Take Notes or Hide Observation without handlers", () => {
+        const html = render(BASE_PROPS);
+        assert.doesNotMatch(html, /Take Notes/);
+        assert.doesNotMatch(html, /Hide Observation/);
+    });
+
+    test("renders Take Notes when onSaveNote is provided", () => {
+        const html = render({ ...BASE_PROPS, onSaveNote: () => {} });
+        assert.match(html, /Take Notes/);
+    });
+
+    test("renders Hide Observation only when canHide is true", () => {
+        const hiddenHtml = render({
+            ...BASE_PROPS,
+            canHide: true,
+            hidden: true,
+            onToggleHidden: () => {},
+        });
+        assert.match(hiddenHtml, /Hide Observation/);
+        assert.match(hiddenHtml, />Hidden</);
+
+        const noHide = render({
+            ...BASE_PROPS,
+            canHide: false,
+            onSaveNote: () => {},
+        });
+        assert.doesNotMatch(noHide, /Hide Observation/);
+    });
+
+    test("shows the shared note preview when text is present", () => {
+        const html = render({
+            ...BASE_PROPS,
+            observationNote: { text: "Check the fossil table." },
+        });
+        assert.match(html, /Check the fossil table/);
+    });
+});
+
 describe("TranscriptRecordCard — RAG highlighting", () => {
     test("highlights RAG spans without a per-transcript color legend", () => {
         const ragSegments = [

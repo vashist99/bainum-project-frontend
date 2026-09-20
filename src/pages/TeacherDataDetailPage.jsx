@@ -10,12 +10,19 @@ import { getPrimaryChildId } from "../utils/parentChildren.js";
 import ClassroomUploadModal from "../components/ClassroomUploadModal";
 import TranscriptRecordCard from "../components/TranscriptRecordCard.jsx";
 import TranscriptList from "../components/TranscriptList.jsx";
+import { useViewAs } from "../contexts/ViewAsContext";
+import {
+  saveObservationNote,
+  setObservationHidden,
+  mergeObservationPatch,
+} from "../lib/observationApi.js";
 
 const TeacherDataDetailPage = () => {
   const { username: usernameOrId } = useParams();
   const teacherId = usernameOrId;
   const navigate = useNavigate();
   const { user, isTeacher, isParent } = useAuth();
+  const { isPreviewing } = useViewAs();
   const [teacher, setTeacher] = useState(null);
   const [assessments, setAssessments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +34,42 @@ const TeacherDataDetailPage = () => {
   const [requestingAccess, setRequestingAccess] = useState(false);
 
   const isViewingOwnPage = isTeacher() && teacher && (String(user?.id) === String(teacher._id) || user?.username === (teacher.username || ''));
+
+  const handleSaveTeacherNote = async (assessment, text) => {
+    try {
+      const payload = await saveObservationNote("teacher", assessment._id, text);
+      setAssessments((rows) =>
+        rows.map((row) =>
+          String(row._id) === String(assessment._id)
+            ? mergeObservationPatch(row, payload)
+            : row
+        )
+      );
+      toast.success("Note saved");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not save note");
+    }
+  };
+
+  const handleToggleTeacherHidden = async (assessment, hidden) => {
+    try {
+      const payload = await setObservationHidden("teacher", assessment._id, hidden);
+      setAssessments((rows) =>
+        rows.map((row) =>
+          String(row._id) === String(assessment._id)
+            ? mergeObservationPatch(row, payload)
+            : row
+        )
+      );
+      const cohortRes = await axios
+        .get(`/api/assessments/cohort-stats/teachers`)
+        .catch(() => ({ data: { cohortStats: null } }));
+      setCohortThresholdsByCategory(cohortRes.data?.cohortStats || null);
+      toast.success(hidden ? "Observation hidden" : "Observation visible");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not update visibility");
+    }
+  };
 
   const handleUploadSuccess = () => {
     setShowUploadModal(false);
@@ -320,6 +363,14 @@ const TeacherDataDetailPage = () => {
                     transcript={assessment.transcript}
                     ragSegments={assessment.ragSegments}
                     onDelete={() => handleDeleteTeacherAssessment(assessment._id)}
+                    observationNote={assessment.observationNote}
+                    hidden={assessment.hidden}
+                    canHide={assessment.canHide}
+                    isPreviewing={isPreviewing}
+                    onSaveNote={(text) => handleSaveTeacherNote(assessment, text)}
+                    onToggleHidden={(nextHidden) =>
+                      handleToggleTeacherHidden(assessment, nextHidden)
+                    }
                   />
                 )}
               />

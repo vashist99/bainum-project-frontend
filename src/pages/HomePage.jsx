@@ -11,7 +11,6 @@ import { getPrimaryChildId } from "../utils/parentChildren.js";
 import { PREVIEW_CHILD_PATH, PREVIEW_WRITE_HINT, previewWriteProps, shouldLoadLiveRoleData } from "../lib/viewAs.js";
 import axios from "../lib/axios";
 import CoachDashboardPage from "./CoachDashboardPage";
-import CoachRequestsPanel from "../components/CoachRequestsPanel";
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -69,7 +68,6 @@ const HomePage = () => {
               </div>
             </div>
 
-            {effectiveIsTeacher() && !isPreviewing && <CoachRequestsPanel />}
 
             {effectiveIsTeacher() && (
               <div className="mb-8">

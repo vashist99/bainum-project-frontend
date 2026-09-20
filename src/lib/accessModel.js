@@ -19,13 +19,10 @@ export const COPY = Object.freeze({
     yes: "Yes",
     no: "No",
     recordsHere: "Records here",
-    asksTheTeacherFirst: "Asks the teacher first",
-    letsTeacherAndAdminLook: "Lets teacher and admin look",
-    onlyIfParentShares: "Only if the parent shares home talk",
+    sharesAClassroom: "Shares a classroom, unless revoked",
+    unlessLeadTurnsOff: "Unless the lead turns it off",
     allowsReadingTheTranscript: "Allows reading the written transcript",
     onlyIfAdminAllows: "Only if the admin allows reading",
-    onlyIfParentSharesThenAdminReading:
-        "Only if the parent shares, then an admin allows reading",
 });
 
 export const DELETION_FACT = Object.freeze({
@@ -90,15 +87,15 @@ export const PLACES = Object.freeze([
 export const CLASSROOM_VIEWERS = Object.freeze([
     { actor: "admin", charts: "yes", transcript: "yes" },
     { actor: "teacher", charts: "yes", transcript: "yes" },
-    { actor: "parent", charts: "yes", transcript: "yes" },
-    { actor: "coach", charts: "arrow", transcript: "arrow", chartsPath: "ask-to-look", transcriptPath: "turns-on-words" },
+    { actor: "parent", charts: "arrow", transcript: "arrow", chartsPath: "classroom-parent", transcriptPath: "classroom-parent" },
+    { actor: "coach", charts: "arrow", transcript: "arrow", chartsPath: "classroom-contact", transcriptPath: "turns-on-words" },
 ]);
 
 export const HOME_VIEWERS = Object.freeze([
     { actor: "parent", charts: "yes", transcript: "yes" },
-    { actor: "admin", charts: "arrow", transcript: "arrow", chartsPath: "share-staff", transcriptPath: "turns-on-words", transcriptLabelKey: "onlyIfParentSharesThenAdminReading" },
-    { actor: "teacher", charts: "arrow", transcript: "arrow", chartsPath: "share-staff", transcriptPath: "turns-on-words", transcriptLabelKey: "onlyIfParentSharesThenAdminReading" },
-    { actor: "coach", charts: "no", transcript: "no" },
+    { actor: "admin", charts: "yes", transcript: "yes" },
+    { actor: "teacher", charts: "arrow", transcript: "arrow", chartsPath: "home-contact", transcriptPath: "turns-on-words", transcriptLabelKey: "onlyIfAdminAllows" },
+    { actor: "coach", charts: "arrow", transcript: "arrow", chartsPath: "home-contact-coach", transcriptPath: "turns-on-words", transcriptLabelKey: "onlyIfAdminAllows" },
 ]);
 
 export const PATHS = Object.freeze([
@@ -130,24 +127,44 @@ export const PATHS = Object.freeze([
         actors: Object.freeze(["parent"]),
     },
     {
-        id: "ask-to-look",
+        id: "classroom-contact",
         from: "coach",
         toPlace: "classroom",
         toColumn: "charts",
         toLabel: "Classroom charts",
-        labelKey: "asksTheTeacherFirst",
-        cellLabelKey: "asksTheTeacherFirst",
+        labelKey: "sharesAClassroom",
+        cellLabelKey: "sharesAClassroom",
         actors: Object.freeze(["coach", "teacher"]),
     },
     {
-        id: "share-staff",
+        id: "classroom-parent",
         from: "parent",
+        toPlace: "classroom",
+        toColumn: "charts",
+        toLabel: "Classroom charts",
+        labelKey: "unlessLeadTurnsOff",
+        cellLabelKey: "unlessLeadTurnsOff",
+        actors: Object.freeze(["parent", "teacher"]),
+    },
+    {
+        id: "home-contact",
+        from: "teacher",
         toPlace: "home",
         toColumn: "charts",
         toLabel: "Home charts",
-        labelKey: "letsTeacherAndAdminLook",
-        cellLabelKey: "onlyIfParentShares",
-        actors: Object.freeze(["parent", "admin", "teacher"]),
+        labelKey: "sharesAClassroom",
+        cellLabelKey: "sharesAClassroom",
+        actors: Object.freeze(["parent", "teacher"]),
+    },
+    {
+        id: "home-contact-coach",
+        from: "coach",
+        toPlace: "home",
+        toColumn: "charts",
+        toLabel: "Home charts",
+        labelKey: "sharesAClassroom",
+        cellLabelKey: "sharesAClassroom",
+        actors: Object.freeze(["parent", "coach"]),
     },
     {
         id: "turns-on-words",

@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router";
 import AppLayout from "../components/AppLayout";
 import ClassroomInviteModal from "../components/ClassroomInviteModal";
 import ClassroomUploadModal from "../components/ClassroomUploadModal";
-import NotesSection from "../components/NotesSection.jsx";
 import { LanguageDevelopmentCharts } from "../components/LanguageDevelopmentCharts";
 import {
   School,
@@ -24,6 +23,13 @@ import { buildClassroomWorkbook } from "../utils/classroomExcel";
 import TranscriptRecordCard from "../components/TranscriptRecordCard.jsx";
 import TranscriptList from "../components/TranscriptList.jsx";
 import { canRemoveChildFromClassroom } from "../utils/classroomMembershipUi.js";
+import CurrentlyAccessingButton from "../components/CurrentlyAccessingButton.jsx";
+import { useViewAs } from "../contexts/ViewAsContext";
+import {
+  saveObservationNote,
+  setObservationHidden,
+  mergeObservationPatch,
+} from "../lib/observationApi.js";
 
 const CATEGORIES = ["science", "social", "literature", "language"];
 
@@ -31,6 +37,7 @@ const ClassroomHomePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAdmin, user } = useAuth();
+  const { isPreviewing } = useViewAs();
 
   const [classroom, setClassroom] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -222,6 +229,35 @@ const ClassroomHomePage = () => {
     return String(rec?.teacherId ?? "") === String(user.id ?? "");
   };
 
+  const handleSaveClassroomNote = async (rec, text) => {
+    try {
+      const payload = await saveObservationNote("teacher", rec._id, text);
+      setTranscripts((rows) =>
+        rows.map((row) =>
+          String(row._id) === String(rec._id) ? mergeObservationPatch(row, payload) : row
+        )
+      );
+      toast.success("Note saved");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not save note");
+    }
+  };
+
+  const handleToggleClassroomHidden = async (rec, hidden) => {
+    try {
+      const payload = await setObservationHidden("teacher", rec._id, hidden);
+      setTranscripts((rows) =>
+        rows.map((row) =>
+          String(row._id) === String(rec._id) ? mergeObservationPatch(row, payload) : row
+        )
+      );
+      fetchAssessments();
+      toast.success(hidden ? "Observation hidden" : "Observation visible");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not update visibility");
+    }
+  };
+
   const deleteRecording = async (rec) => {
     try {
       await axios.delete(`/api/assessments/teacher/${rec._id}`);
@@ -306,7 +342,7 @@ const ClassroomHomePage = () => {
             </div>
             <h2 className="card-title justify-center text-2xl mb-2">Access Denied</h2>
             <p className="text-base-content/70 mb-4">
-              Only the classroom's lead/assistant teacher, admins, and enrolled parents can view this classroom.
+              Only the classroom's lead/assistant teacher, admins, enrolled parents, and assigned coaches can view this classroom.
             </p>
             <div className="card-actions justify-center">
               <a href="/home" className="btn btn-primary">Go Home</a>
@@ -357,28 +393,27 @@ const ClassroomHomePage = () => {
                 </div>
               </div>
 
-              {(canRecord || !isReadOnlyView) && (
-                <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-                  {!isReadOnlyView && (
-                    <button
-                      onClick={() => setShowAddParentsModal(true)}
-                      className="btn btn-outline btn-primary gap-2 w-full sm:w-auto"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      Add Parents
-                    </button>
-                  )}
-                  {canRecord && (
-                    <button
-                      onClick={() => setShowRecordModal(true)}
-                      className="btn btn-primary gap-2 w-full sm:w-auto"
-                    >
-                      <Mic className="w-4 h-4" />
-                      Record
-                    </button>
-                  )}
-                </div>
-              )}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 shrink-0">
+                <CurrentlyAccessingButton place="classroom" targetId={id} className="w-full sm:w-auto" />
+                {!isReadOnlyView && (
+                  <button
+                    onClick={() => setShowAddParentsModal(true)}
+                    className="btn btn-outline btn-primary gap-2 w-full sm:w-auto"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Add Parents
+                  </button>
+                )}
+                {canRecord && (
+                  <button
+                    onClick={() => setShowRecordModal(true)}
+                    className="btn btn-primary gap-2 w-full sm:w-auto"
+                  >
+                    <Mic className="w-4 h-4" />
+                    Record
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Children list: members added via parents who accepted the
@@ -532,15 +567,6 @@ const ClassroomHomePage = () => {
               </div>
             )}
 
-            {!isCoachView && (
-            <NotesSection
-              scope="classroom"
-              scopeId={id}
-              canWrite={!isReadOnlyView}
-              className="mb-6"
-            />
-            )}
-
             {/* Transcripts card — last 365 days of classroom recordings.
                 Coaches only see it on the admin-granted transcript tier. */}
             {(!isCoachView || coachHasTranscriptAccess) && (
@@ -615,6 +641,14 @@ const ClassroomHomePage = () => {
                           transcript={rec.transcript || ""}
                           ragSegments={rec.ragSegments}
                           onDelete={onDelete}
+                          observationNote={rec.observationNote}
+                          hidden={rec.hidden}
+                          canHide={rec.canHide}
+                          isPreviewing={isPreviewing}
+                          onSaveNote={(text) => handleSaveClassroomNote(rec, text)}
+                          onToggleHidden={(nextHidden) =>
+                            handleToggleClassroomHidden(rec, nextHidden)
+                          }
                         />
                       );
                     }}

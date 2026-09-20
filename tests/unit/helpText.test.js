@@ -27,6 +27,7 @@ const EXPECTED_KEYS = [
     "control.createClassroom",
     "control.recordActivity",
     "control.homeSharing",
+    "control.currentlyAccessing",
     "control.homeTranscriptAccess",
     "control.activityLog",
     "control.termsAcceptance",
@@ -34,6 +35,8 @@ const EXPECTED_KEYS = [
     "control.transcriptPii",
     "control.viewAs",
     "control.viewAsBanner",
+    "control.takeNotes",
+    "control.hideObservation",
 ];
 
 describe("helpText map integrity", () => {

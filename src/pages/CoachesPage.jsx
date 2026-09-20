@@ -85,7 +85,7 @@ const CoachesPage = () => {
   };
 
   const handleUnassign = async (coachId, teacherId, teacherName) => {
-    if (!window.confirm(`Unassign ${teacherName} from this coach? Classroom access granted through this teacher will be revoked.`)) return;
+    if (!window.confirm(`Unassign ${teacherName} from this coach? Classroom charts for rooms they no longer supervise will hide automatically.`)) return;
     try {
       await unassignTeacher(coachId, teacherId);
       toast.success("Teacher unassigned");
@@ -237,7 +237,7 @@ const CoachesPage = () => {
                         Classroom Access
                       </h3>
                       {coach.grants.length === 0 ? (
-                        <p className="text-sm text-base-content/50">No classroom access requests.</p>
+                        <p className="text-sm text-base-content/50">No classroom grants yet.</p>
                       ) : (
                         <div className="overflow-x-auto">
                           <table className="table table-sm">

@@ -9,12 +9,12 @@ import { useAuth } from "../contexts/AuthContext";
 import { getPrimaryChildId, parentHasAccessToChild } from "../utils/parentChildren.js";
 import { classroomRefId, classroomRefName } from "../utils/classroomMembershipUi.js";
 import { compareAssessmentsNewestFirst } from "../utils/assessmentSort.js";
-import NotesSection from "../components/NotesSection.jsx";
 import TranscriptRecordCard from "../components/TranscriptRecordCard.jsx";
 import TranscriptList from "../components/TranscriptList.jsx";
 import HomeTalkSharingPanel from "../components/HomeTalkSharingPanel.jsx";
 import HomeTranscriptAccessPanel from "../components/HomeTranscriptAccessPanel.jsx";
-import { fetchHomeAccessState, requestHomeAccess } from "../lib/homeAccessApi.js";
+import CurrentlyAccessingButton from "../components/CurrentlyAccessingButton.jsx";
+import { fetchHomeAccessState } from "../lib/homeAccessApi.js";
 import {
   staffHomeStatusFrom,
   staffHasTranscriptAccess,
@@ -24,6 +24,11 @@ import { userCan } from "../lib/permissions.js";
 import { useViewAs } from "../contexts/ViewAsContext";
 import RolePreviewEmpty from "../components/RolePreviewEmpty";
 import { isPreviewChildSegment, shouldLoadLiveRoleData } from "../lib/viewAs.js";
+import {
+  saveObservationNote,
+  setObservationHidden,
+  mergeObservationPatch,
+} from "../lib/observationApi.js";
 
 const ChildDataPage = () => {
   const { childId } = useParams();
@@ -40,7 +45,6 @@ const ChildDataPage = () => {
   /** Home view access state: parents get the full sharing state, staff their own status. */
   const [homeAccess, setHomeAccess] = useState(null);
   const [loadingHomeAccess, setLoadingHomeAccess] = useState(false);
-  const [requestingHomeAccess, setRequestingHomeAccess] = useState(false);
   const [classmates, setClassmates] = useState([]);
   const [loadingClassmates, setLoadingClassmates] = useState(false);
   const [cohortThresholdsByCategory, setCohortThresholdsByCategory] = useState(null);
@@ -300,16 +304,39 @@ const ChildDataPage = () => {
     }
   };
 
-  const handleRequestHomeAccess = async () => {
-    setRequestingHomeAccess(true);
+  const handleSaveChildNote = async (assessment, text) => {
     try {
-      const result = await requestHomeAccess(childId);
-      toast.success(result?.message || "Request sent");
-      await refreshHomeAccess();
+      const payload = await saveObservationNote("child", assessment._id, text);
+      setAllAssessments((rows) =>
+        rows.map((row) =>
+          String(row._id) === String(assessment._id)
+            ? mergeObservationPatch(row, payload)
+            : row
+        )
+      );
+      toast.success("Note saved");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to send request");
-    } finally {
-      setRequestingHomeAccess(false);
+      toast.error(error.response?.data?.message || "Could not save note");
+    }
+  };
+
+  const handleToggleChildHidden = async (assessment, hidden) => {
+    try {
+      const payload = await setObservationHidden("child", assessment._id, hidden);
+      setAllAssessments((rows) =>
+        rows.map((row) =>
+          String(row._id) === String(assessment._id)
+            ? mergeObservationPatch(row, payload)
+            : row
+        )
+      );
+      const cohortRes = await axios
+        .get(`/api/assessments/cohort-stats/children`)
+        .catch(() => ({ data: { cohortStats: null } }));
+      setCohortThresholdsByCategory(cohortRes.data?.cohortStats || null);
+      toast.success(hidden ? "Observation hidden" : "Observation visible");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not update visibility");
     }
   };
 
@@ -334,7 +361,7 @@ const ChildDataPage = () => {
     () => (Array.isArray(allAssessments) ? allAssessments : []),
     [allAssessments]
   );
-  const isStaffUser = user?.role === 'teacher' || user?.role === 'admin';
+  const isStaffUser = user?.role === 'teacher' || user?.role === 'admin' || user?.role === 'coach';
   const staffHomeStatus = isStaffUser ? staffHomeStatusFrom(homeAccess) : null;
   /** Staff without a parent grant see the privacy gate instead of home data. */
   const staffHomeLocked =
@@ -445,7 +472,7 @@ const ChildDataPage = () => {
     <AppLayout>
       <div className="container mx-auto p-4 md:p-6 max-w-6xl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             {user?.role !== 'parent' && (
             <button
@@ -459,7 +486,10 @@ const ChildDataPage = () => {
               {displayChild?.name || 'Child'}&apos;s Data
             </h1>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <div className="flex items-end justify-end gap-2 sm:gap-3 flex-wrap">
+            {showFullProfile && !staffHomeLocked && (
+              <CurrentlyAccessingButton place="home" targetId={childId} />
+            )}
             {isParent() && showFullProfile && (
               <div className="form-control">
                 <label className="label py-0 pb-1">
@@ -513,7 +543,7 @@ const ChildDataPage = () => {
               <h2 className="card-title text-xl">Full access pending</h2>
               <p className="text-base-content/80">
                 Classroom transcripts for this child are shown below.
-                Send an invitation for full profile access (charts, notes, and all demographics).
+                Send an invitation for full profile access (charts and all demographics).
               </p>
               <div className="form-control w-full mt-2">
                 <label className="label"><span className="label-text">Parent email</span></label>
@@ -572,35 +602,16 @@ const ChildDataPage = () => {
           />
         )}
 
-        {/* Staff home view gate: home data is private until the parent grants access */}
         {staffHomeLocked && (
           <div className="card bg-base-100 shadow-xl mb-6 border border-warning/30">
             <div className="card-body items-center text-center">
               <Lock className="w-10 h-10 text-warning" />
               <h2 className="card-title text-xl">Home talk data is private</h2>
               <p className="text-base-content/70 max-w-lg">
-                Home recordings belong to the family. The parent of {displayChild?.name || "this child"} must
-                grant you access before you can view their home talk data.
+                Home charts open automatically when you share a classroom with{" "}
+                {displayChild?.name || "this child"}&apos;s parent, unless they were turned off.
+                Transcript words stay admin-gated.
               </p>
-              {staffHomeStatus === HOME_ACCESS_STATUS.PENDING ? (
-                <button type="button" className="btn btn-primary mt-2" disabled>
-                  Request sent
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn-primary mt-2"
-                  disabled={requestingHomeAccess || loadingHomeAccess}
-                  onClick={handleRequestHomeAccess}
-                >
-                  {requestingHomeAccess ? "Sending…" : "Request access"}
-                </button>
-              )}
-              {staffHomeStatus === HOME_ACCESS_STATUS.PENDING && (
-                <p className="text-xs text-base-content/60">
-                  The parent has been notified and can grant access from their child&apos;s page.
-                </p>
-              )}
             </div>
           </div>
         )}
@@ -773,10 +784,8 @@ const ChildDataPage = () => {
           />
         )}
 
-        {/* Assessment Data - WPM Summary and Progress Timeline */}
         {!staffHomeLocked && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div className="card bg-base-100 shadow-xl">
+        <div className="card bg-base-100 shadow-xl mb-6">
             <div className="card-body">
               <h2 className="card-title flex items-center gap-2">
                 <FileText className="w-5 h-5" />
@@ -815,59 +824,9 @@ const ChildDataPage = () => {
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className="card bg-base-100 shadow-xl">
-            <div className="card-body">
-              <h2 className="card-title flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Progress Timeline
-              </h2>
-              <div className="divider"></div>
-              <ul className="timeline timeline-vertical">
-                <li>
-                  <div className="timeline-start">Jan 2024</div>
-                  <div className="timeline-middle">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-primary">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="timeline-end timeline-box">Initial Assessment</div>
-                  <hr className="bg-primary" />
-                </li>
-                <li>
-                  <hr className="bg-primary" />
-                  <div className="timeline-start">Mar 2024</div>
-                  <div className="timeline-middle">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-base-content/20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="timeline-end timeline-box">Mid-term Review</div>
-                  <hr />
-                </li>
-                <li>
-                  <hr />
-                  <div className="timeline-start">Jun 2024</div>
-                  <div className="timeline-middle">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-base-content/20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="timeline-end timeline-box">Final Assessment</div>
-                </li>
-              </ul>
-            </div>
-          </div>
         </div>
         )}
 
-        <NotesSection
-          scope="child"
-          scopeId={childId}
-          canWrite={true}
-          className="mb-6"
-        />
         </>
         )}
 
@@ -983,6 +942,14 @@ const ChildDataPage = () => {
                         isParent()
                           ? () => handleDeleteChildAssessment(assessment._id)
                           : undefined
+                      }
+                      observationNote={assessment.observationNote}
+                      hidden={assessment.hidden}
+                      canHide={assessment.canHide}
+                      isPreviewing={isPreviewing}
+                      onSaveNote={(text) => handleSaveChildNote(assessment, text)}
+                      onToggleHidden={(nextHidden) =>
+                        handleToggleChildHidden(assessment, nextHidden)
                       }
                     />
                   )}
