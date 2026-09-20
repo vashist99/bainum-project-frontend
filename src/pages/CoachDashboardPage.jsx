@@ -4,6 +4,8 @@ import toast from "react-hot-toast";
 import { School, Users, Sparkles, Clock, Eye, FileText, Lock } from "lucide-react";
 import AppLayout from "../components/AppLayout";
 import { useAuth } from "../contexts/AuthContext";
+import { useViewAs } from "../contexts/ViewAsContext";
+import { shouldLoadLiveRoleData } from "../lib/viewAs.js";
 import { fetchCoachOverview, requestClassroomAccess } from "../lib/coachApi";
 
 const TIER_LABEL = {
@@ -15,6 +17,7 @@ const TIER_LABEL = {
 
 const CoachDashboardPage = () => {
   const { user } = useAuth();
+  const { isPreviewing } = useViewAs();
   const [teachers, setTeachers] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,8 +40,14 @@ const CoachDashboardPage = () => {
   }, []);
 
   useEffect(() => {
+    if (!shouldLoadLiveRoleData(isPreviewing)) {
+      setTeachers([]);
+      setClassrooms([]);
+      setLoading(false);
+      return;
+    }
     load();
-  }, [load]);
+  }, [load, isPreviewing]);
 
   const handleRequest = async (classroomId) => {
     setRequestingId(classroomId);
@@ -85,7 +94,9 @@ const CoachDashboardPage = () => {
                 <div className="card bg-base-100 shadow border border-dashed border-base-300">
                   <div className="card-body items-center text-center py-10">
                     <p className="text-base-content/70 max-w-md">
-                      No teachers are assigned to you yet. An administrator assigns teachers to coaches.
+                      {isPreviewing
+                        ? "Coaches see the teachers an administrator assigned to them. This is a general preview — no assignments are listed."
+                        : "No teachers are assigned to you yet. Invite a teacher from People → Teachers, or wait for an administrator to assign one."}
                     </p>
                   </div>
                 </div>
@@ -110,7 +121,9 @@ const CoachDashboardPage = () => {
                 <div className="card bg-base-100 shadow border border-dashed border-base-300">
                   <div className="card-body items-center text-center py-10">
                     <p className="text-base-content/70 max-w-md">
-                      Your assigned teachers don't lead any classrooms yet.
+                      {isPreviewing
+                        ? "Coaches request access to a teacher's classrooms from this list. This is a general preview — no classrooms are listed."
+                        : "Your assigned teachers don't lead any classrooms yet."}
                     </p>
                   </div>
                 </div>

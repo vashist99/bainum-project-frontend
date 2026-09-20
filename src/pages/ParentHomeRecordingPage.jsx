@@ -4,17 +4,22 @@ import AppLayout from "../components/AppLayout";
 import ActivityRecordingForm from "../components/ActivityRecordingForm";
 import { Radio } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useViewAs } from "../contexts/ViewAsContext";
+import RolePreviewEmpty from "../components/RolePreviewEmpty";
+import { shouldLoadLiveRoleData } from "../lib/viewAs.js";
 import axios from "../lib/axios";
 
 const ParentHomeRecordingPage = () => {
   const navigate = useNavigate();
   const { isParent, user } = useAuth();
+  const { isPreviewing, effectiveIsParent } = useViewAs();
   const [linkedChildren, setLinkedChildren] = useState([]);
   const [childId, setChildId] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isParent()) {
+    if (!shouldLoadLiveRoleData(isPreviewing) || !isParent()) {
+      setLinkedChildren([]);
       setLoading(false);
       return;
     }
@@ -32,9 +37,9 @@ const ParentHomeRecordingPage = () => {
       })
       .catch(() => setLinkedChildren([]))
       .finally(() => setLoading(false));
-  }, [isParent, user?.id]);
+  }, [isParent, user?.id, isPreviewing]);
 
-  if (!isParent()) {
+  if (!effectiveIsParent()) {
     return <Navigate to="/home" replace />;
   }
 
@@ -67,7 +72,12 @@ const ParentHomeRecordingPage = () => {
           </div>
         </div>
 
-        {loading ? (
+        {isPreviewing ? (
+          <RolePreviewEmpty title="Home recording" icon={Radio}>
+            Parents record or upload home audio for a linked child from this page.
+            Recording and upload are off in a general preview.
+          </RolePreviewEmpty>
+        ) : loading ? (
           <div className="flex justify-center py-16">
             <span className="loading loading-spinner loading-lg text-primary" />
           </div>

@@ -5,6 +5,9 @@ import { User, Mail, Building2, Mic, FileText, Download } from "lucide-react";
 import axios from "../lib/axios";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
+import { useViewAs } from "../contexts/ViewAsContext";
+import RolePreviewEmpty from "../components/RolePreviewEmpty";
+import { shouldLoadLiveRoleData } from "../lib/viewAs.js";
 import { LanguageDevelopmentCharts } from "../components/LanguageDevelopmentCharts";
 import ClassroomUploadModal from "../components/ClassroomUploadModal";
 import TranscriptRecordCard from "../components/TranscriptRecordCard.jsx";
@@ -13,6 +16,7 @@ import { buildTranscriptsWorkbook } from "../utils/classroomExcel";
 
 const TeacherProfilePage = () => {
   const { user } = useAuth();
+  const { isPreviewing } = useViewAs();
   const [teacher, setTeacher] = useState(null);
   const [assessments, setAssessments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +26,12 @@ const TeacherProfilePage = () => {
   const [downloadingXlsx, setDownloadingXlsx] = useState(false);
 
   useEffect(() => {
+    if (!shouldLoadLiveRoleData(isPreviewing)) {
+      setTeacher(null);
+      setAssessments([]);
+      setLoading(false);
+      return;
+    }
     const fetchData = async () => {
       if (!user?.id) return;
       try {
@@ -42,7 +52,24 @@ const TeacherProfilePage = () => {
       }
     };
     fetchData();
-  }, [user?.id]);
+  }, [user?.id, isPreviewing]);
+
+  if (isPreviewing) {
+    return (
+      <AppLayout breadcrumbs={[{ label: "My Profile", href: "/profile" }]}>
+        <div className="p-4 sm:p-6 max-w-4xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold text-base-content mb-2">My Profile</h1>
+          <p className="text-base-content/70 mb-6">
+            A teacher&apos;s own assessments and transcript cards.
+          </p>
+          <RolePreviewEmpty title="Teacher profile" icon={User}>
+            Teachers land here to review their classroom recordings. This is a general
+            preview — no specific teacher&apos;s assessments are loaded.
+          </RolePreviewEmpty>
+        </div>
+      </AppLayout>
+    );
+  }
 
   if (user?.username) return <Navigate to={`/teachers/${user.username}`} replace />;
 

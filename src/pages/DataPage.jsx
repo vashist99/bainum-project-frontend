@@ -5,6 +5,9 @@ import { Users, ChevronRight, UserPlus, Mail, Edit, Trash2, ArrowUpDown, ArrowUp
 import axios from "../lib/axios";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
+import { useViewAs } from "../contexts/ViewAsContext";
+import RolePreviewEmpty from "../components/RolePreviewEmpty";
+import { shouldLoadLiveRoleData } from "../lib/viewAs.js";
 import { getPrimaryChildId } from "../utils/parentChildren.js";
 import ViewModeToggle from "../components/ViewModeToggle.jsx";
 import useViewMode, { VIEW_MODE_TILES } from "../hooks/useViewMode.js";
@@ -13,24 +16,26 @@ import useSortableList from "../hooks/useSortableList.js";
 const DataPage = () => {
   const navigate = useNavigate();
   const { user, isTeacher, isParent, isAdmin } = useAuth();
+  const { isPreviewing } = useViewAs();
 
   // Redirect parents to their child's page
   useEffect(() => {
+    if (!shouldLoadLiveRoleData(isPreviewing)) return;
     const primary = getPrimaryChildId(user);
     if (isParent() && primary) {
       navigate(`/data/child/${primary}`, { replace: true });
     }
-  }, [isParent, user, navigate]);
+  }, [isParent, user, navigate, isPreviewing]);
 
   const [pendingParentAccess, setPendingParentAccess] = useState([]);
 
   useEffect(() => {
-    if (!isTeacher() || !user) return;
+    if (!shouldLoadLiveRoleData(isPreviewing) || !isTeacher() || !user) return;
     axios
       .get("/api/access/pending-for-teacher")
       .then((res) => setPendingParentAccess(res.data?.pending || []))
       .catch(() => setPendingParentAccess([]));
-  }, [isTeacher, user]);
+  }, [isTeacher, user, isPreviewing]);
 
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [teachers, setTeachers] = useState([]);
@@ -48,7 +53,7 @@ const DataPage = () => {
   const [childrenViewMode, setChildrenViewMode] = useViewMode("children");
 
   useEffect(() => {
-    if (!isAdmin() && !isTeacher()) return;
+    if (!shouldLoadLiveRoleData(isPreviewing) || (!isAdmin() && !isTeacher())) return;
     axios
       .get("/api/invitations/list")
       .then((res) => {
@@ -63,10 +68,16 @@ const DataPage = () => {
         setInvitedChildIds(next);
       })
       .catch(() => {});
-  }, [isAdmin, isTeacher]);
+  }, [isAdmin, isTeacher, isPreviewing]);
 
   // Load teachers and children from database
   useEffect(() => {
+    if (!shouldLoadLiveRoleData(isPreviewing)) {
+      setTeachers([]);
+      setChildren([]);
+      setLoading(false);
+      return;
+    }
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -92,7 +103,7 @@ const DataPage = () => {
     };
 
     fetchData();
-  }, []);
+  }, [isPreviewing]);
 
   // Auto-select the teacher's center when a teacher lands on this page.
   useEffect(() => {
@@ -368,6 +379,25 @@ const DataPage = () => {
       }
     }
   };
+
+  if (isPreviewing) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto p-4 sm:p-6 min-w-0">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-base-content mb-2">Children</h1>
+            <p className="text-base-content/70">
+              Home recordings of every child a teacher supervises.
+            </p>
+          </div>
+          <RolePreviewEmpty title="No children yet" icon={Users}>
+            Teachers open this list to review home talk for children they supervise.
+            This is a general preview — no live roster or recordings are loaded.
+          </RolePreviewEmpty>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

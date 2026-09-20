@@ -1,11 +1,14 @@
 import { useAuth } from '../contexts/AuthContext';
+import { useViewAs } from '../contexts/ViewAsContext';
 import { getPrimaryChildId } from '../utils/parentChildren.js';
-import { Navigate } from 'react-router';
+import { Navigate, useLocation } from 'react-router';
+import { parentHomeRedirect, pathAllowedDuringPreview, routeAccess } from '../lib/viewAs.js';
 
 const ProtectedRoute = ({ children, requiredRole = null, excludeRoles = [], skipParentHomeRedirect = false }) => {
-  const { user, hasRole, loading, isParent } = useAuth();
+  const { user, loading } = useAuth();
+  const { effectiveRole, isPreviewing, previewRole } = useViewAs();
+  const location = useLocation();
 
-  // Show loading while checking authentication
   if (loading) {
     return (
       <div className="min-h-screen bg-base-200 flex items-center justify-center">
@@ -14,19 +17,33 @@ const ProtectedRoute = ({ children, requiredRole = null, excludeRoles = [], skip
     );
   }
 
-  // Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/" replace />;
   }
 
-  // Redirect parents to their child's page if they try to access restricted pages
-  const primaryChild = getPrimaryChildId(user);
-  if (isParent() && primaryChild && excludeRoles.length === 0 && !requiredRole && !skipParentHomeRedirect) {
-    return <Navigate to={`/data/child/${primaryChild}`} replace />;
+  if (isPreviewing && !pathAllowedDuringPreview(previewRole, location.pathname)) {
+    return <Navigate to="/home" replace />;
   }
 
-  // Check if role is excluded
-  if (excludeRoles.length > 0 && excludeRoles.some(role => hasRole(role))) {
+  const parentRedirect = parentHomeRedirect({
+    effectiveRole,
+    isPreviewing,
+    primaryChildId: getPrimaryChildId(user),
+    skipParentHomeRedirect,
+    requiredRole,
+    excludeRoles,
+  });
+  if (parentRedirect) {
+    return <Navigate to={parentRedirect} replace />;
+  }
+
+  const access = routeAccess({ effectiveRole, requiredRole, excludeRoles });
+  if (access === "deny") {
+    if (isPreviewing) {
+      return <Navigate to="/home" replace />;
+    }
+
+    const primaryChild = getPrimaryChildId(user);
     return (
       <div className="min-h-screen bg-base-200 flex items-center justify-center">
         <div className="card bg-base-100 shadow-xl max-w-md">
@@ -34,45 +51,37 @@ const ProtectedRoute = ({ children, requiredRole = null, excludeRoles = [], skip
             <div className="text-6xl mb-4">🚫</div>
             <h2 className="card-title justify-center text-2xl mb-2">Access Denied</h2>
             <p className="text-base-content/70 mb-4">
-              This page is not available for your role.
+              {requiredRole
+                ? "You don't have permission to access this page."
+                : "This page is not available for your role."}
             </p>
-            {primaryChild && (
-              <div className="card-actions justify-center">
+            {requiredRole && (
+              <p className="text-sm text-base-content/50 mb-6">
+                Required role:{" "}
+                <span className="font-semibold capitalize">
+                  {Array.isArray(requiredRole) ? requiredRole.join(" or ") : requiredRole}
+                </span>
+              </p>
+            )}
+            <div className="card-actions justify-center">
+              {primaryChild && !requiredRole ? (
                 <a href={`/data/child/${primaryChild}`} className="btn btn-primary">
                   Go to Child's Page
                 </a>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Check role-based access if requiredRole is specified
-  if (requiredRole && !hasRole(requiredRole)) {
-    return (
-      <div className="min-h-screen bg-base-200 flex items-center justify-center">
-        <div className="card bg-base-100 shadow-xl max-w-md">
-          <div className="card-body text-center">
-            <div className="text-6xl mb-4">🚫</div>
-            <h2 className="card-title justify-center text-2xl mb-2">Access Denied</h2>
-            <p className="text-base-content/70 mb-4">
-              You don't have permission to access this page.
-            </p>
-            <p className="text-sm text-base-content/50 mb-6">
-              Required role: <span className="font-semibold capitalize">{requiredRole}</span>
-            </p>
-            <div className="card-actions justify-center">
-              <button 
-                onClick={() => window.history.back()} 
-                className="btn btn-primary"
-              >
-                Go Back
-              </button>
-              <a href="/home" className="btn btn-ghost">
-                Go Home
-              </a>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => window.history.back()}
+                    className="btn btn-primary"
+                  >
+                    Go Back
+                  </button>
+                  <a href="/home" className="btn btn-ghost">
+                    Go Home
+                  </a>
+                </>
+              )}
             </div>
           </div>
         </div>

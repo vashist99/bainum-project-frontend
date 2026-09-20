@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { clearStoredPreviewRole } from '../lib/viewAs.js';
 
 const AuthContext = createContext();
 
@@ -82,8 +83,10 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    clearStoredPreviewRole();
   };
 
+  // Actual JWT role only — preview chrome lives in ViewAsContext (effectiveRole).
   const isAdmin = () => {
     return user?.role === 'admin';
   };

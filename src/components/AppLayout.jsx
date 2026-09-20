@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { useLocation } from "react-router";
+import { Navigate, useLocation } from "react-router";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
+import PreviewBanner from "./PreviewBanner";
+import { useViewAs } from "../contexts/ViewAsContext";
+import { pathAllowedDuringPreview } from "../lib/viewAs.js";
 
 /**
  * Shared authenticated app shell: sidebar + navbar + scrollable content area.
@@ -18,8 +21,13 @@ import Navbar from "./Navbar";
 export default function AppLayout({ breadcrumbs = [], children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { isPreviewing, previewRole } = useViewAs();
 
   const handleSidebarToggle = () => setSidebarOpen((open) => !open);
+
+  if (isPreviewing && !pathAllowedDuringPreview(previewRole, location.pathname)) {
+    return <Navigate to="/home" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-base-200 flex">
@@ -35,6 +43,7 @@ export default function AppLayout({ breadcrumbs = [], children }) {
           showSidebar={sidebarOpen}
           breadcrumbs={breadcrumbs}
         />
+        <PreviewBanner />
 
         <main className="flex-1 overflow-auto">{children}</main>
       </div>

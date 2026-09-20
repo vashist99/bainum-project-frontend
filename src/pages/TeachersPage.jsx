@@ -7,15 +7,30 @@ import { Plus, Edit, Trash2, ChevronDown, ChevronRight, User, Users, Mail, Build
 import axios from "../lib/axios";
 import { schoolsFromListResponse } from "../utils/schools.js";
 import toast from "react-hot-toast";
-import { useAuth } from "../contexts/AuthContext";
+import { useViewAs } from "../contexts/ViewAsContext";
 import ViewModeToggle from "../components/ViewModeToggle.jsx";
 import useViewMode, { VIEW_MODE_TILES } from "../hooks/useViewMode.js";
 import useSortableList from "../hooks/useSortableList.js";
 import InfoTip from "../components/InfoTip.jsx";
+import { roleHasCapability } from "../lib/permissions.js";
+import { COACH_TEACHER_SLOT_LIMIT, countCoachTeacherSlots } from "../lib/coachTeacherSlots.js";
+import { previewWriteProps, shouldLoadLiveRoleData } from "../lib/viewAs.js";
+
+const emptyInviteForm = {
+  email: "",
+  firstName: "",
+  lastName: "",
+  education: "",
+  dateOfBirth: "",
+  school: "",
+};
 
 const TeachersPage = () => {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isPreviewing, effectiveRole, effectiveIsCoach } = useViewAs();
+  const canManageTeachers = roleHasCapability(effectiveRole, "manageTeachers") && !isPreviewing;
+  const canInviteTeachers = roleHasCapability(effectiveRole, "inviteTeachers") && !isPreviewing;
+  const coachChrome = effectiveIsCoach();
   const [teachers, setTeachers] = useState([]);
   const [children, setChildren] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
@@ -25,8 +40,9 @@ const TeachersPage = () => {
   const [expandedTeachers, setExpandedTeachers] = useState(new Set());
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedTeacherForInvite, setSelectedTeacherForInvite] = useState(null);
-  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteForm, setInviteForm] = useState(emptyInviteForm);
   const [sendingInvite, setSendingInvite] = useState(false);
+  const [invitations, setInvitations] = useState([]);
   /** Lowercased emails that already have a teacher invitation sent */
   const [invitedTeacherEmails, setInvitedTeacherEmails] = useState(() => new Set());
   const [searchTerm, setSearchTerm] = useState("");
@@ -38,23 +54,30 @@ const TeachersPage = () => {
   ];
 
   useEffect(() => {
-    if (!isAdmin()) return;
+    if (!canInviteTeachers) return;
     axios
       .get("/api/teacher-invitations/list")
       .then((res) => {
+        const list = res.data?.invitations || [];
+        setInvitations(list);
         const next = new Set();
-        (res.data?.invitations || []).forEach((inv) => {
+        list.forEach((inv) => {
           const e = (inv?.email || "").toLowerCase().trim();
           if (e) next.add(e);
         });
         setInvitedTeacherEmails(next);
       })
       .catch(() => {});
-  }, [isAdmin]);
+  }, [canInviteTeachers]);
 
   // Load teachers from API on component mount
   useEffect(() => {
     const fetchTeachers = async () => {
+      if (!shouldLoadLiveRoleData(isPreviewing)) {
+        setTeachers([]);
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         const response = await axios.get("/api/teachers");
@@ -69,14 +92,14 @@ const TeachersPage = () => {
     };
 
     fetchTeachers();
-  }, []);
+  }, [isPreviewing]);
 
   // Load children + classrooms from API if user is admin. Both are needed
   // to materialize the per-teacher children list now that membership is
   // expressed via classrooms instead of Child.leadTeacher.
   useEffect(() => {
     const fetchChildrenAndClassrooms = async () => {
-      if (!isAdmin()) return;
+      if (!canManageTeachers) return;
       try {
         const [childRes, classroomRes] = await Promise.all([
           axios.get("/api/children"),
@@ -92,24 +115,23 @@ const TeachersPage = () => {
     };
 
     fetchChildrenAndClassrooms();
-  }, [isAdmin]);
+  }, [canManageTeachers]);
 
-  // Load centers from API if user is admin
+  // Schools: admin filter + coach invite form
   useEffect(() => {
     const fetchCenters = async () => {
-      if (isAdmin()) {
-        try {
-          const response = await axios.get("/api/schools");
-          setCenters(schoolsFromListResponse(response.data));
-        } catch (error) {
-          console.error("Error fetching centers:", error);
-          setCenters([]);
-        }
+      if (!canManageTeachers && !canInviteTeachers) return;
+      try {
+        const response = await axios.get("/api/schools");
+        setCenters(schoolsFromListResponse(response.data));
+      } catch (error) {
+        console.error("Error fetching centers:", error);
+        setCenters([]);
       }
     };
 
     fetchCenters();
-  }, [isAdmin]);
+  }, [canManageTeachers, canInviteTeachers]);
 
   /**
    * Children supervised by the given teacher object (id-matched against any
@@ -119,8 +141,18 @@ const TeachersPage = () => {
    * Defined above `filteredTeachers` so the sortable-list getter for the
    * "students" column can reference it without a temporal dead-zone error.
    */
+  const pendingInvites = invitations.filter((inv) => {
+    if (inv.status !== "pending") return false;
+    if (!inv.expiresAt) return true;
+    return new Date(inv.expiresAt) > new Date();
+  });
+  const usedSlots = coachChrome
+    ? countCoachTeacherSlots({ assigned: teachers, pending: pendingInvites })
+    : 0;
+  const atInviteCap = coachChrome && usedSlots >= COACH_TEACHER_SLOT_LIMIT;
+
   const getChildrenForTeacher = (teacher) => {
-    if (!isAdmin()) return [];
+    if (!canManageTeachers) return [];
     if (!teacher) return [];
     const teacherId =
       typeof teacher === "string"
@@ -208,6 +240,7 @@ const TeachersPage = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!canManageTeachers) return;
     if (window.confirm("Are you sure you want to delete this teacher?")) {
       try {
         await axios.delete(`/api/teachers/${id}`);
@@ -230,58 +263,95 @@ const TeachersPage = () => {
     setExpandedTeachers(newExpanded);
   };
 
+  const resetInviteModal = () => {
+    setShowInviteModal(false);
+    setInviteForm(emptyInviteForm);
+    setSelectedTeacherForInvite(null);
+  };
+
   const openInviteModal = (teacher) => {
+    if (!canInviteTeachers) return;
     const em = (teacher?.email || "").toLowerCase().trim();
     if (em && invitedTeacherEmails.has(em)) return;
     setSelectedTeacherForInvite(teacher);
-    setInviteEmail(teacher.email || "");
+    const parts = String(teacher?.name || "").trim().split(/\s+/);
+    setInviteForm({
+      email: teacher.email || "",
+      firstName: parts[0] || "",
+      lastName: parts.slice(1).join(" ") || "",
+      education: teacher.education || "",
+      dateOfBirth: teacher.dateOfBirth
+        ? new Date(teacher.dateOfBirth).toISOString().split("T")[0]
+        : "",
+      school: teacher.center || "",
+    });
+    setShowInviteModal(true);
+  };
+
+  const openNewInviteModal = () => {
+    if (!canInviteTeachers || atInviteCap) return;
+    setSelectedTeacherForInvite(null);
+    setInviteForm(emptyInviteForm);
     setShowInviteModal(true);
   };
 
   const handleSendInvitation = async () => {
-    if (!inviteEmail.trim()) {
-      toast.error("Please enter an email address");
+    if (!canInviteTeachers) {
+      toast.error("Invitations are not available in this view");
       return;
     }
 
-    if (!selectedTeacherForInvite) {
-      toast.error("No teacher selected");
+    const invitationData = selectedTeacherForInvite
+      ? {
+          email: inviteForm.email,
+          firstName: inviteForm.firstName || selectedTeacherForInvite.name.split(" ")[0] || "",
+          lastName:
+            inviteForm.lastName ||
+            selectedTeacherForInvite.name.split(" ").slice(1).join(" ") ||
+            "",
+          education: inviteForm.education || selectedTeacherForInvite.education || "",
+          dateOfBirth:
+            inviteForm.dateOfBirth ||
+            selectedTeacherForInvite.dateOfBirth ||
+            new Date().toISOString().split("T")[0],
+          center: inviteForm.school || selectedTeacherForInvite.center || "",
+        }
+      : {
+          email: inviteForm.email,
+          firstName: inviteForm.firstName,
+          lastName: inviteForm.lastName,
+          education: inviteForm.education,
+          dateOfBirth: inviteForm.dateOfBirth,
+          center: inviteForm.school,
+        };
+
+    if (
+      !invitationData.email?.trim() ||
+      !invitationData.firstName?.trim() ||
+      !invitationData.lastName?.trim() ||
+      !invitationData.education?.trim() ||
+      !invitationData.dateOfBirth ||
+      !invitationData.center
+    ) {
+      toast.error("Please fill in all invitation fields");
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(inviteEmail)) {
+    if (!emailRegex.test(invitationData.email)) {
       toast.error("Please enter a valid email");
-      return;
-    }
-
-    // Verify user is admin
-    if (!isAdmin()) {
-      toast.error("Only administrators can send teacher invitations");
       return;
     }
 
     setSendingInvite(true);
 
     try {
-      // Verify user is logged in
       const savedUser = localStorage.getItem('user');
       if (!savedUser) {
         toast.error("Please log in to send invitations");
         setSendingInvite(false);
         return;
       }
-
-      // Prepare invitation data using teacher's existing data
-      const invitationData = {
-        email: inviteEmail,
-        firstName: selectedTeacherForInvite.name.split(' ')[0] || "",
-        lastName: selectedTeacherForInvite.name.split(' ').slice(1).join(' ') || "",
-        education: selectedTeacherForInvite.education || "",
-        dateOfBirth: selectedTeacherForInvite.dateOfBirth || new Date().toISOString().split('T')[0],
-        center: selectedTeacherForInvite.center || "",
-      };
 
       // Send invitation - axios interceptor will automatically add the Authorization header
       const response = await axios.post("/api/teacher-invitations/send", invitationData);
@@ -305,15 +375,22 @@ const TeachersPage = () => {
         toast.success("Teacher invitation sent successfully!");
       }
 
-      const em = inviteEmail.toLowerCase().trim();
+      const em = invitationData.email.toLowerCase().trim();
       if (em) {
         setInvitedTeacherEmails((prev) => new Set([...prev, em]));
+        setInvitations((prev) => [
+          {
+            email: em,
+            firstName: invitationData.firstName,
+            lastName: invitationData.lastName,
+            status: "pending",
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+          ...prev,
+        ]);
       }
 
-      // Reset and close modal
-      setShowInviteModal(false);
-      setInviteEmail("");
-      setSelectedTeacherForInvite(null);
+      resetInviteModal();
     } catch (error) {
       console.error("Error sending invitation:", error);
       console.error("Error response:", error.response?.data);
@@ -323,7 +400,7 @@ const TeachersPage = () => {
       let errorMessage = "Failed to send invitation. Please try again.";
       
       if (error.response?.status === 403) {
-        errorMessage = "Access denied. Only admins can send teacher invitations. Please check your login status.";
+        errorMessage = "You do not have permission to send teacher invitations.";
       } else if (error.response?.status === 401) {
         errorMessage = "Authentication failed. Please log out and log back in.";
       } else if (error.response?.data?.message) {
@@ -358,7 +435,7 @@ const TeachersPage = () => {
               </div>
               <div className="flex-1">
                 <h3 className="card-title text-lg font-bold text-base-content">
-                  {isAdmin() ? (
+                  {canManageTeachers ? (
                     <button
                       onClick={() => navigate(`/teachers/${teacher.username || teacher._id}`)}
                       className="hover:text-primary transition-colors"
@@ -383,9 +460,9 @@ const TeachersPage = () => {
               </div>
             </div>
             
-            {/* Actions */}
+            {canManageTeachers && (
             <div className="dropdown dropdown-end">
-              <button className="btn btn-ghost btn-sm btn-circle">
+              <button type="button" className="btn btn-ghost btn-sm btn-circle">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                 </svg>
@@ -393,6 +470,7 @@ const TeachersPage = () => {
               <ul className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-48 border">
                 <li>
                   <button
+                    type="button"
                     onClick={() => navigate(`/teachers/edit/${teacher._id}`)}
                     className="flex items-center gap-2"
                   >
@@ -402,6 +480,7 @@ const TeachersPage = () => {
                 </li>
                 <li>
                   <button
+                    type="button"
                     onClick={() => handleDelete(teacher._id)}
                     className="flex items-center gap-2 text-error"
                   >
@@ -411,6 +490,7 @@ const TeachersPage = () => {
                 </li>
               </ul>
             </div>
+            )}
           </div>
 
           {/* Details */}
@@ -449,22 +529,26 @@ const TeachersPage = () => {
           {/* Actions */}
           <div className="flex items-center justify-between pt-4 border-t border-base-200">
             <div className="flex gap-2">
-              {isInvited ? (
+              {roleHasCapability(effectiveRole, "inviteTeachers") && (
+                isInvited ? (
                 <span className="btn btn-ghost btn-sm no-animation opacity-80 cursor-default border border-base-300">
                   Invited
                 </span>
               ) : (
                 <button
+                  type="button"
                   onClick={() => openInviteModal(teacher)}
                   className="btn btn-primary btn-sm gap-1"
+                  {...previewWriteProps(isPreviewing)}
                 >
                   <Mail className="w-4 h-4" />
                   Invite
                 </button>
+              )
               )}
             </div>
             
-            {isAdmin() && hasChildren && (
+            {canManageTeachers && hasChildren && (
               <button
                 onClick={() => toggleTeacherExpansion(teacher._id)}
                 className="btn btn-ghost btn-sm gap-1"
@@ -481,7 +565,7 @@ const TeachersPage = () => {
           </div>
 
           {/* Students Section */}
-          {isAdmin() && isExpanded && (
+          {canManageTeachers && isExpanded && (
             <div className="mt-4 pt-4 border-t border-base-200">
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {teacherChildren.length > 0 ? (
@@ -534,10 +618,12 @@ const TeachersPage = () => {
               <div>
                 <h1 className="text-3xl font-bold text-base-content mb-2 flex items-center gap-2">
                   Teachers
-                  <InfoTip helpKey="page.teachers" />
+                  <InfoTip helpKey={coachChrome ? "page.teachersCoach" : "page.teachers"} />
                 </h1>
                 <p className="text-base-content/70">
-                  Manage teacher profiles and class assignments
+                  {coachChrome
+                    ? "Teachers you supervise, plus invitations you have sent"
+                    : "Manage teacher profiles and class assignments"}
                 </p>
               </div>
               
@@ -557,20 +643,75 @@ const TeachersPage = () => {
                   onChange={setViewMode}
                   ariaLabel="Teachers list view mode"
                 />
+
+                {coachChrome && roleHasCapability(effectiveRole, "inviteTeachers") && (
+                  <button
+                    type="button"
+                    onClick={openNewInviteModal}
+                    className="btn btn-primary gap-2 w-full sm:w-auto"
+                    disabled={isPreviewing || atInviteCap}
+                    title={
+                      isPreviewing
+                        ? "Not available in a general preview"
+                        : atInviteCap
+                          ? `You can supervise at most ${COACH_TEACHER_SLOT_LIMIT} teachers at a time`
+                          : undefined
+                    }
+                    aria-disabled={isPreviewing || atInviteCap}
+                  >
+                    <Mail className="w-5 h-5" />
+                    Invite Teacher
+                  </button>
+                )}
                 
-                {/* Add Button */}
-                <button
-                  onClick={handleAddTeacher}
-                  className="btn btn-primary gap-2 w-full sm:w-auto"
-                >
-                  <Plus className="w-5 h-5" />
-                  Add Teacher
-                </button>
+                {canManageTeachers && (
+                  <button
+                    type="button"
+                    onClick={handleAddTeacher}
+                    className="btn btn-primary gap-2 w-full sm:w-auto"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Add Teacher
+                  </button>
+                )}
               </div>
             </div>
             
             {/* Stats */}
-            {!loading && (
+            {!loading && coachChrome && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="stat bg-base-100 shadow-lg rounded-lg">
+                  <div className="stat-figure text-primary">
+                    <Users className="w-8 h-8" />
+                  </div>
+                  <div className="stat-title">Assigned</div>
+                  <div className="stat-value text-primary">{teachers.length}</div>
+                  <div className="stat-desc">Teachers you supervise</div>
+                </div>
+                <div className="stat bg-base-100 shadow-lg rounded-lg">
+                  <div className="stat-figure text-secondary">
+                    <Mail className="w-8 h-8" />
+                  </div>
+                  <div className="stat-title">Pending invites</div>
+                  <div className="stat-value text-secondary">{pendingInvites.length}</div>
+                  <div className="stat-desc">Still waiting to accept</div>
+                </div>
+                <div className="stat bg-base-100 shadow-lg rounded-lg">
+                  <div className="stat-figure text-info">
+                    <Filter className="w-8 h-8" />
+                  </div>
+                  <div className="stat-title">Roster slots</div>
+                  <div className="stat-value text-info">
+                    {usedSlots} / {COACH_TEACHER_SLOT_LIMIT}
+                  </div>
+                  <div className="stat-desc">
+                    {atInviteCap ? "Invite limit reached" : "Assigned plus pending"}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!loading && !coachChrome && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div className="stat bg-base-100 shadow-lg rounded-lg">
                   <div className="stat-figure text-primary">
@@ -610,8 +751,32 @@ const TeachersPage = () => {
               </div>
             )}
 
+            {coachChrome && pendingInvites.length > 0 && (
+              <div className="card bg-base-100 shadow-lg mb-6">
+                <div className="card-body p-4">
+                  <h2 className="card-title text-base">Pending invitations</h2>
+                  <ul className="space-y-2">
+                    {pendingInvites.map((inv) => (
+                      <li
+                        key={inv.id || inv.email}
+                        className="flex flex-wrap items-center justify-between gap-2 text-sm"
+                      >
+                        <span>
+                          {inv.firstName} {inv.lastName}{" "}
+                          <span className="text-base-content/60">({inv.email})</span>
+                        </span>
+                        <span className="badge badge-outline">
+                          Expires {inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString() : "soon"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
             {/* Filters */}
-            {isAdmin() && centers.length > 0 && (
+            {canManageTeachers && centers.length > 0 && (
               <div className="card bg-base-100 shadow-lg mb-6">
                 <div className="card-body p-4">
                   <div className="flex flex-wrap items-center gap-4">
@@ -653,34 +818,6 @@ const TeachersPage = () => {
               </div>
             )}
 
-        {isAdmin() && (
-          <div className="card bg-base-100 shadow-xl mb-6">
-            <div className="card-body">
-              <div className="form-control w-full max-w-xs">
-                <label className="label">
-                  <span className="label-text font-semibold flex items-center gap-2">
-                    <Building2 className="w-5 h-5" />
-                    Filter by School
-                  </span>
-                </label>
-                <select
-                  className="select select-bordered select-primary w-full"
-                  value={selectedCenter}
-                  onChange={(e) => setSelectedCenter(e.target.value)}
-                  disabled={loading}
-                >
-                  <option value="">All schools</option>
-                  {centers.map((c) => (
-                    <option key={c._id} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        )}
-
             {/* Content */}
             {loading ? (
               <CardLoading count={6} />
@@ -703,7 +840,24 @@ const TeachersPage = () => {
                   </button>
                 </div>
               ) : (
-                <EmptyTeachers onAdd={handleAddTeacher} />
+                <EmptyTeachers
+                  onAdd={
+                    canManageTeachers
+                      ? handleAddTeacher
+                      : canInviteTeachers && !atInviteCap
+                        ? openNewInviteModal
+                        : undefined
+                  }
+                  title={coachChrome ? "No teachers yet" : undefined}
+                  description={
+                    coachChrome
+                      ? isPreviewing
+                        ? "Coaches see only the teachers they supervise. This is a general preview — no assignments are listed."
+                        : "Invite a teacher you supervise. You can have up to 20 at a time (assigned plus pending invitations)."
+                      : undefined
+                  }
+                  actionLabel={coachChrome ? "Invite Teacher" : undefined}
+                />
               )
             ) : (
               <>
@@ -724,7 +878,7 @@ const TeachersPage = () => {
                         <table className="table table-zebra">
                           <thead>
                             <tr>
-                              {isAdmin() && <th className="w-12"></th>}
+                              {canManageTeachers && <th className="w-12"></th>}
                               <th>#</th>
                               <th aria-sort={teachersAriaSortFor("name")}>
                                 <button
@@ -799,7 +953,7 @@ const TeachersPage = () => {
                               return (
                                 <>
                                   <tr key={teacher._id} className="hover">
-                                    {isAdmin() && (
+                                    {canManageTeachers && (
                                       <td>
                                         {hasChildren ? (
                                           <button
@@ -820,7 +974,7 @@ const TeachersPage = () => {
                                     <td>{index + 1}</td>
                                     <td>
                                       <div className="flex items-center gap-2">
-                                        {isAdmin() ? (
+                                        {canManageTeachers ? (
                                           <button
                                             onClick={() => navigate(`/teachers/${teacher.username || teacher._id}`)}
                                             className="link link-primary font-semibold hover:underline"
@@ -863,7 +1017,10 @@ const TeachersPage = () => {
                                     </td>
                                     <td>
                                       <div className="flex gap-2">
+                                        {canManageTeachers && (
+                                          <>
                                         <button 
+                                          type="button"
                                           onClick={() => navigate(`/teachers/edit/${teacher._id}`)}
                                           className="btn btn-ghost btn-xs"
                                           title="Edit teacher"
@@ -871,32 +1028,39 @@ const TeachersPage = () => {
                                           <Edit className="w-4 h-4" />
                                         </button>
                                         <button
+                                          type="button"
                                           onClick={() => handleDelete(teacher._id)}
                                           className="btn btn-ghost btn-xs text-error"
                                           title="Delete teacher"
                                         >
                                           <Trash2 className="w-4 h-4" />
                                         </button>
-                                        {isInvited ? (
+                                          </>
+                                        )}
+                                        {roleHasCapability(effectiveRole, "inviteTeachers") && (
+                                          isInvited ? (
                                           <span className="btn btn-ghost btn-xs no-animation opacity-80 cursor-default border border-base-300">
                                             Invited
                                           </span>
                                         ) : (
                                           <button
+                                            type="button"
                                             onClick={() => openInviteModal(teacher)}
                                             className="btn btn-primary btn-xs gap-1"
                                             title="Send invitation"
+                                            {...previewWriteProps(isPreviewing)}
                                           >
                                             <Mail className="w-3 h-3" />
                                             Invite
                                           </button>
+                                        )
                                         )}
                                       </div>
                                     </td>
                                   </tr>
                                   
                                   {/* Expanded children details */}
-                                  {isAdmin() && isExpanded && hasChildren && (
+                                  {canManageTeachers && isExpanded && hasChildren && (
                                     <tr>
                                       <td colSpan={9} className="bg-base-50 p-0">
                                         <div className="p-4">
@@ -949,8 +1113,7 @@ const TeachersPage = () => {
             )}
           </div>
 
-      {/* Invite Teacher Modal */}
-      {showInviteModal && selectedTeacherForInvite && (
+      {showInviteModal && (
         <div className="modal modal-open">
           <div className="modal-box w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <h3 className="font-bold text-2xl mb-4 flex items-center gap-2">
@@ -961,44 +1124,109 @@ const TeachersPage = () => {
             <div className="divider"></div>
 
             <div className="mb-4">
-              <p className="text-sm text-base-content/70 mb-2">
-                Sending invitation for: <strong>{selectedTeacherForInvite.name}</strong>
-              </p>
+              {selectedTeacherForInvite ? (
+                <p className="text-sm text-base-content/70 mb-2">
+                  Sending invitation for: <strong>{selectedTeacherForInvite.name}</strong>
+                </p>
+              ) : (
+                <p className="text-sm text-base-content/70 mb-2">
+                  Invite a teacher by email. They will be assigned to you when they accept.
+                </p>
+              )}
               <p className="text-xs text-base-content/60">
                 The teacher will receive an email with a link to create their account and access the system.
               </p>
             </div>
 
-            <div className="form-control w-full mb-4">
-              <label className="label">
-                <span className="label-text font-semibold">Teacher Email Address</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <label className="form-control w-full">
+                <span className="label-text font-semibold">First name</span>
+                <input
+                  type="text"
+                  className="input input-bordered w-full"
+                  value={inviteForm.firstName}
+                  onChange={(e) => setInviteForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                  disabled={sendingInvite}
+                />
               </label>
+              <label className="form-control w-full">
+                <span className="label-text font-semibold">Last name</span>
+                <input
+                  type="text"
+                  className="input input-bordered w-full"
+                  value={inviteForm.lastName}
+                  onChange={(e) => setInviteForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                  disabled={sendingInvite}
+                />
+              </label>
+            </div>
+
+            <label className="form-control w-full mb-4">
+              <span className="label-text font-semibold">Teacher email</span>
               <input
                 type="email"
                 placeholder="teacher@example.com"
                 className="input input-bordered input-primary w-full"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
+                value={inviteForm.email}
+                onChange={(e) => setInviteForm((prev) => ({ ...prev, email: e.target.value }))}
                 disabled={sendingInvite}
               />
+            </label>
+
+            <label className="form-control w-full mb-4">
+              <span className="label-text font-semibold">Education</span>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                value={inviteForm.education}
+                onChange={(e) => setInviteForm((prev) => ({ ...prev, education: e.target.value }))}
+                disabled={sendingInvite}
+              />
+            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <label className="form-control w-full">
+                <span className="label-text font-semibold">Date of birth</span>
+                <input
+                  type="date"
+                  className="input input-bordered w-full"
+                  value={inviteForm.dateOfBirth}
+                  onChange={(e) => setInviteForm((prev) => ({ ...prev, dateOfBirth: e.target.value }))}
+                  disabled={sendingInvite}
+                />
+              </label>
+              <label className="form-control w-full">
+                <span className="label-text font-semibold">School</span>
+                <select
+                  className="select select-bordered w-full"
+                  value={inviteForm.school}
+                  onChange={(e) => setInviteForm((prev) => ({ ...prev, school: e.target.value }))}
+                  disabled={sendingInvite}
+                >
+                  <option value="">Select a school</option>
+                  {centers.map((c) => (
+                    <option key={c._id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
 
             <div className="modal-action">
               <button
-                onClick={() => {
-                  setShowInviteModal(false);
-                  setInviteEmail("");
-                  setSelectedTeacherForInvite(null);
-                }}
+                type="button"
+                onClick={resetInviteModal}
                 className="btn btn-ghost"
                 disabled={sendingInvite}
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSendInvitation}
                 className="btn btn-primary gap-2"
-                disabled={sendingInvite || !inviteEmail.trim()}
+                disabled={sendingInvite || !inviteForm.email.trim()}
               >
                 {sendingInvite ? (
                   <>
@@ -1014,7 +1242,7 @@ const TeachersPage = () => {
               </button>
             </div>
           </div>
-          <div className="modal-backdrop" onClick={() => !sendingInvite && setShowInviteModal(false)}></div>
+          <div className="modal-backdrop" onClick={() => !sendingInvite && resetInviteModal()}></div>
         </div>
       )}
     </AppLayout>

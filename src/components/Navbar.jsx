@@ -1,6 +1,7 @@
 import { Users, LogOut, Menu, Home, ChevronRight } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import NotificationBell from "./NotificationBell";
+import ViewAsMenu from "./ViewAsMenu";
 
 const Navbar = ({ onToggleSidebar, showSidebar = false, breadcrumbs = [] }) => {
   const { user, logout } = useAuth();
@@ -59,6 +60,7 @@ const Navbar = ({ onToggleSidebar, showSidebar = false, breadcrumbs = [] }) => {
       </div>
       
       <div className="navbar-end items-center gap-1">
+        <ViewAsMenu />
         <NotificationBell />
 
         {/* User Menu */}

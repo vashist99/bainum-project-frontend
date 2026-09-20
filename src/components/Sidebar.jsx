@@ -5,8 +5,22 @@ import {
   LogOut, X, ChevronDown, ChevronRight, School, Radio, ClipboardList
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { getPrimaryChildId } from "../utils/parentChildren.js";
+import { useViewAs } from "../contexts/ViewAsContext";
+import { buildSidebarItems } from "../lib/sidebarNav.js";
+import { roleDisplayName } from "../lib/viewAs.js";
 import InfoTip from "./InfoTip.jsx";
+
+const NAV_ICONS = {
+  "nav.dashboard": Home,
+  "nav.homeRecording": Radio,
+  "nav.myChildData": BarChart3,
+  "nav.coaches": ClipboardList,
+  "nav.teachers": Users,
+  "nav.schools": Building2,
+  "nav.home": BarChart3,
+  "nav.classrooms": School,
+  "nav.myProfile": UserCircle,
+};
 
 const itemClassName = (isActive) =>
   `flex items-center justify-between w-full px-4 py-3 rounded-lg transition-all duration-200 group cursor-pointer ${
@@ -72,124 +86,31 @@ const SidebarItem = ({ icon: IconComponent, label, href, isActive, onClick, hasS
   );
 };
 
+const withIcons = (items) =>
+  items.map((item) => ({ ...item, icon: NAV_ICONS[item.helpKey] || Home }));
+
 const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
-  const { user, logout, isAdmin, isParent, isTeacher, isCoach } = useAuth();
-  const primaryChildId = isParent() ? getPrimaryChildId(user) : null;
+  const { user, logout } = useAuth();
+  const { effectiveRole, isPreviewing, previewRole } = useViewAs();
 
   const handleLogout = () => {
     logout();
     window.location.href = "/";
   };
 
-  // Coach-scoped sidebar: dashboard (assigned teachers/classrooms) only.
-  // Coaches never see the admin/teacher management entries below.
-  const navigationItems = isCoach() ? [
-    {
-      icon: Home,
-      label: "Dashboard",
-      href: "/home",
-      helpKey: "nav.dashboard",
-      isActive:
-        currentPath === "/home" ||
-        currentPath === "/" ||
-        currentPath.startsWith("/classrooms"),
-    },
-  ] : [
-    {
-      icon: Home,
-      label: "Dashboard",
-      href: "/home",
-      helpKey: "nav.dashboard",
-      isActive:
-        currentPath === "/home" ||
-        currentPath === "/" ||
-        (isParent() && currentPath.startsWith("/classrooms")),
-    },
-    ...(isParent() ? [
-      {
-        icon: Radio,
-        label: "Home Environment Data",
-        href: "/home/recording",
-        helpKey: "nav.homeRecording",
-        isActive: currentPath.startsWith("/home/recording"),
-      },
-    ] : []),
-    ...(isParent() && primaryChildId ? [
-      {
-        icon: BarChart3,
-        label: "My Child's Data",
-        href: `/data/child/${primaryChildId}`,
-        helpKey: "nav.myChildData",
-        isActive: currentPath.startsWith("/data/child"),
-      }
-    ] : []),
-  ];
-
-  // "People" group: Coaches and Teachers only. Rendered when at least one
-  // entry is visible (admins). Teachers no longer have a People group —
-  // Home is a top-level item between Schools and Classrooms.
-  const peopleItems = [
-    ...(isAdmin() ? [
-      {
-        icon: ClipboardList,
-        label: "Coaches",
-        href: "/coaches",
-        helpKey: "nav.coaches",
-        isActive: currentPath.startsWith("/coaches")
-      }
-    ] : []),
-    ...(isAdmin() ? [
-      {
-        icon: Users,
-        label: "Teachers",
-        href: "/teachers",
-        helpKey: "nav.teachers",
-        isActive: currentPath.startsWith("/teachers")
-      }
-    ] : []),
-  ];
+  const model = buildSidebarItems({
+    effectiveRole,
+    isPreviewing,
+    user,
+    currentPath,
+  });
+  const navigationItems = withIcons(model.navigationItems);
+  const peopleItems = withIcons(model.peopleItems);
+  const afterPeopleItems = withIcons(model.afterPeopleItems);
   const peopleChildActive = peopleItems.some((item) => item.isActive);
-
-  const afterPeopleItems = isCoach() ? [] : [
-    ...(isAdmin() ? [
-      {
-        icon: Building2,
-        label: "Schools",
-        href: "/schools",
-        helpKey: "nav.schools",
-        isActive: currentPath.startsWith("/schools") || currentPath.startsWith("/centers")
-      }
-    ] : []),
-    ...(!isParent() && !isCoach() ? [
-      {
-        icon: BarChart3,
-        label: "Home Environment Data",
-        href: "/data",
-        helpKey: "nav.home",
-        isActive: currentPath.startsWith("/data")
-      }
-    ] : []),
-    // Classrooms nav: admins get the full list; teachers land on homepage cards.
-    // Parents see enrolled classrooms on the dashboard (no separate tab).
-    ...(isAdmin() || isTeacher() ? [
-      {
-        icon: School,
-        label: "Classrooms",
-        href: isAdmin() ? "/classrooms" : "/home",
-        helpKey: "nav.classrooms",
-        isActive: currentPath.startsWith("/classrooms"),
-      }
-    ] : []),
-    ...(isTeacher() ? [
-      {
-        icon: UserCircle,
-        label: "My Profile",
-        href: user?.username ? `/teachers/${user.username}` : "/profile",
-        helpKey: "nav.myProfile",
-        isActive: currentPath.includes("/teachers/") || currentPath === "/profile"
-      }
-    ] : []),
-  ];
+  const roleLine = isPreviewing
+    ? `Viewing as ${roleDisplayName(previewRole)}`
+    : (user?.role || "No Role");
 
   return (
     <>
@@ -240,7 +161,7 @@ const Sidebar = ({ isOpen, onToggle, currentPath = "/" }) => {
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-sm truncate">{user?.name || 'User'}</h3>
                 <p className="text-xs text-base-content/60 capitalize truncate">
-                  {user?.role || 'No Role'}
+                  {roleLine}
                 </p>
               </div>
             </div>

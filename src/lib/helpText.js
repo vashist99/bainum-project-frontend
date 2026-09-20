@@ -13,7 +13,7 @@ export const HELP_TEXT = Object.freeze({
     "nav.people":
         "Directory of the people on the platform: teachers and coaches.",
     "nav.teachers":
-        "View and manage teacher profiles. Filter by school, search, add teachers, or send account invitations.",
+        "Teachers you can work with. Administrators manage the full directory; coaches see only the teachers they supervise and can invite up to 20.",
     "nav.home":
         "The home recordings of every child you supervise. Open a child to see their profile, notes, and home talk data. Classroom talk lives on the classroom homepage.",
     "nav.coaches":
@@ -38,6 +38,8 @@ export const HELP_TEXT = Object.freeze({
         "All classrooms across every center. Cards are titled by the lead teacher; open a classroom to manage its roster or review its talk data.",
     "page.teachers":
         "Teacher directory. Add teachers, send invitations, filter by school, and open a teacher to edit their profile.",
+    "page.teachersCoach":
+        "Teachers you supervise. Invite a teacher by email (up to 20 assigned plus pending). You cannot add, edit, or delete teacher profiles.",
     "page.coaches":
         "Coaches join the platform on their own — no invitation needed. Assign each coach the teachers they oversee; classroom access still requires teacher approval, and transcript access is admin-gated.",
     "page.about":
@@ -62,6 +64,10 @@ export const HELP_TEXT = Object.freeze({
         "Permanently removes your profile and sign-in. Classroom recordings, transcripts, and talk analytics you produced are program records and remain on the platform, attributed to your name. This cannot be undone.",
     "control.transcriptPii":
         "Names and other identifiers (phones, emails, addresses) are replaced with labels like [PERSON] or [EMAIL] before you review the transcript. The original wording is not stored.",
+    "control.viewAs":
+        "See the platform the way another role does — a general preview, not a specific person's account. Navigation and empty screens change; your sign-in and data access do not. Recording, uploading, and other writes stay off.",
+    "control.viewAsBanner":
+        "You are looking at a general preview of this role. Exit to return to your own navigation. Nothing you do here is saved as that role.",
 });
 
 /** Look up help copy for a key; returns null for unknown keys. */

@@ -20,6 +20,7 @@ const EXPECTED_KEYS = [
     "nav.about",
     "page.classrooms",
     "page.teachers",
+    "page.teachersCoach",
     "page.coaches",
     "page.about",
     "control.viewMode",
@@ -31,6 +32,8 @@ const EXPECTED_KEYS = [
     "control.termsAcceptance",
     "control.deleteAccount",
     "control.transcriptPii",
+    "control.viewAs",
+    "control.viewAsBanner",
 ];
 
 describe("helpText map integrity", () => {

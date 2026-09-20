@@ -3,16 +3,26 @@ import { useNavigate } from "react-router";
 import AppLayout from "../components/AppLayout";
 import ClassroomCard from "../components/ClassroomCard";
 import ParentEnrolledClassrooms from "../components/ParentEnrolledClassrooms";
+import RolePreviewEmpty from "../components/RolePreviewEmpty";
 import { Sparkles, ArrowRight, Plus, School, LayoutGrid } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useViewAs } from "../contexts/ViewAsContext";
 import { getPrimaryChildId } from "../utils/parentChildren.js";
+import { PREVIEW_CHILD_PATH, PREVIEW_WRITE_HINT, previewWriteProps, shouldLoadLiveRoleData } from "../lib/viewAs.js";
 import axios from "../lib/axios";
 import CoachDashboardPage from "./CoachDashboardPage";
 import CoachRequestsPanel from "../components/CoachRequestsPanel";
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { isAdmin, isParent, isTeacher, isCoach, user } = useAuth();
+  const { isTeacher, user } = useAuth();
+  const {
+    isPreviewing,
+    effectiveIsAdmin,
+    effectiveIsTeacher,
+    effectiveIsParent,
+    effectiveIsCoach,
+  } = useViewAs();
   const [classrooms, setClassrooms] = useState([]);
   const [classroomsLoading, setClassroomsLoading] = useState(false);
 
@@ -20,26 +30,29 @@ const HomePage = () => {
     { label: "Dashboard", href: "/home" }
   ];
 
-  // Teachers see cards for every classroom they lead or assist.
   useEffect(() => {
-    if (!isTeacher()) return;
+    if (!shouldLoadLiveRoleData(isPreviewing) || !isTeacher()) return;
     setClassroomsLoading(true);
     axios.get("/api/classrooms")
       .then((res) => setClassrooms(res.data.classrooms || []))
       .catch(() => setClassrooms([]))
       .finally(() => setClassroomsLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, isPreviewing]);
 
-  // Coaches get their own dashboard: assigned teachers + classroom access.
-  if (isCoach()) {
+  if (effectiveIsCoach()) {
     return <CoachDashboardPage />;
   }
+
+  const createClassroomProps = previewWriteProps(isPreviewing, {
+    type: "button",
+    className: "btn btn-primary btn-sm sm:btn-md gap-2 w-full sm:w-auto",
+    onClick: () => navigate("/classrooms/create"),
+  });
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <div className="p-4 sm:p-6">
-            {/* Welcome Header */}
             <div className="mb-8">
               <div className="flex items-center gap-4 mb-4">
                 <div className="bg-gradient-to-br from-primary to-secondary p-3 rounded-xl">
@@ -56,27 +69,26 @@ const HomePage = () => {
               </div>
             </div>
 
-            {/* Teacher: pending coach access requests (lead teachers only see rows) */}
-            {isTeacher() && <CoachRequestsPanel />}
+            {effectiveIsTeacher() && !isPreviewing && <CoachRequestsPanel />}
 
-            {/* Teacher: classroom cards (lead + assisted) */}
-            {isTeacher() && (
+            {effectiveIsTeacher() && (
               <div className="mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                   <h2 className="text-xl font-bold text-base-content flex items-center gap-2">
                     <School className="w-5 h-5 text-primary" />
                     My Classrooms
                   </h2>
-                  <button
-                    onClick={() => navigate("/classrooms/create")}
-                    className="btn btn-primary btn-sm sm:btn-md gap-2 w-full sm:w-auto"
-                  >
+                  <button {...createClassroomProps}>
                     <Plus className="w-4 h-4" />
                     Create Classroom
                   </button>
                 </div>
 
-                {classroomsLoading ? (
+                {isPreviewing ? (
+                  <RolePreviewEmpty title="No classrooms yet" icon={School}>
+                    Teachers see every classroom they lead or assist here. This is a general preview — create and record stay off.
+                  </RolePreviewEmpty>
+                ) : classroomsLoading ? (
                   <div className="flex justify-center py-12">
                     <span className="loading loading-spinner loading-lg text-primary" />
                   </div>
@@ -98,6 +110,7 @@ const HomePage = () => {
                         tracking your children's language development together.
                       </p>
                       <button
+                        type="button"
                         onClick={() => navigate("/classrooms/create")}
                         className="btn btn-primary gap-2 mt-3"
                       >
@@ -110,8 +123,7 @@ const HomePage = () => {
               </div>
             )}
 
-            {/* Admin: classroom quick actions (full list lives on the Classrooms page) */}
-            {isAdmin() && (
+            {effectiveIsAdmin() && (
               <div className="mb-8">
                 <h2 className="text-xl font-bold text-base-content mb-4 flex items-center gap-2">
                   <School className="w-5 h-5 text-primary" />
@@ -150,20 +162,25 @@ const HomePage = () => {
               </div>
             )}
 
-            {/* Parent: classrooms their children are enrolled in */}
-            {isParent() && (
+            {effectiveIsParent() && (
               <>
                 <div className="mb-8">
                   <h2 className="text-xl font-bold text-base-content mb-4 flex items-center gap-2">
                     <School className="w-5 h-5 text-primary" />
                     My Children&apos;s Classrooms
                   </h2>
-                  <ParentEnrolledClassrooms />
+                  {isPreviewing ? (
+                    <RolePreviewEmpty title="No classrooms yet" icon={School}>
+                      Parents see the classrooms their children are enrolled in. This is a general preview — no family&apos;s rooms are listed.
+                    </RolePreviewEmpty>
+                  ) : (
+                    <ParentEnrolledClassrooms />
+                  )}
                 </div>
-                {getPrimaryChildId(user) && (
+                {(isPreviewing || getPrimaryChildId(user)) && (
                   <div className="max-w-md">
                     <a
-                      href={`/data/child/${getPrimaryChildId(user)}`}
+                      href={isPreviewing ? PREVIEW_CHILD_PATH : `/data/child/${getPrimaryChildId(user)}`}
                       className="card bg-base-100 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-200 border border-base-200 hover:border-secondary/50"
                     >
                       <div className="card-body p-6">
@@ -172,11 +189,16 @@ const HomePage = () => {
                         </div>
                         <h3 className="card-title text-lg">View My Child&apos;s Data</h3>
                         <p className="text-sm text-base-content/70 mt-2">
-                          See assessments, transcripts, and WPM progress.
+                          {isPreviewing
+                            ? "Open the general parent child-data screens. No live recordings are loaded."
+                            : "See assessments, transcripts, and WPM progress."}
                         </p>
                       </div>
                     </a>
                   </div>
+                )}
+                {isPreviewing && (
+                  <p className="text-xs text-base-content/50 mt-3">{PREVIEW_WRITE_HINT}.</p>
                 )}
               </>
             )}

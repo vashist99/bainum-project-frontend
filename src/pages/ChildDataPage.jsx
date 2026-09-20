@@ -21,11 +21,16 @@ import {
   HOME_ACCESS_STATUS,
 } from "../utils/homeViewAccess.js";
 import { userCan } from "../lib/permissions.js";
+import { useViewAs } from "../contexts/ViewAsContext";
+import RolePreviewEmpty from "../components/RolePreviewEmpty";
+import { isPreviewChildSegment, shouldLoadLiveRoleData } from "../lib/viewAs.js";
 
 const ChildDataPage = () => {
   const { childId } = useParams();
   const navigate = useNavigate();
   const { user, isParent, isAdmin, isTeacher } = useAuth();
+  const { isPreviewing } = useViewAs();
+  const previewChildPage = isPreviewChildSegment(childId);
   const [child, setChild] = useState(null);
   const [parentChildren, setParentChildren] = useState([]);
   const [loadingParentChildren, setLoadingParentChildren] = useState(false);
@@ -48,7 +53,7 @@ const ChildDataPage = () => {
   const [parentInviteAlreadySent, setParentInviteAlreadySent] = useState(false);
 
   useEffect(() => {
-    if (!isParent()) return;
+    if (previewChildPage || !shouldLoadLiveRoleData(isPreviewing) || !isParent()) return;
     let cancelled = false;
     const fetchParentChildren = async () => {
       try {
@@ -67,7 +72,7 @@ const ChildDataPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [isParent, user?.id]);
+  }, [isParent, user?.id, isPreviewing, previewChildPage]);
 
   useEffect(() => {
     if (!teacherAccessDenied || !childPreview?._id) {
@@ -90,6 +95,11 @@ const ChildDataPage = () => {
   }, [teacherAccessDenied, childPreview]);
 
   useEffect(() => {
+    if (previewChildPage || !shouldLoadLiveRoleData(isPreviewing)) {
+      setChild(null);
+      setLoading(false);
+      return;
+    }
     const fetchChild = async () => {
       try {
         setLoading(true);
@@ -144,10 +154,14 @@ const ChildDataPage = () => {
     };
 
     fetchChild();
-  }, [childId, user, navigate]);
+  }, [childId, user, navigate, isPreviewing, previewChildPage]);
 
   // Load all assessments from database for aggregation
   useEffect(() => {
+    if (previewChildPage || !shouldLoadLiveRoleData(isPreviewing)) {
+      setAllAssessments([]);
+      return;
+    }
     const fetchAllAssessments = async () => {
       if (childId) {
         try {
@@ -161,7 +175,7 @@ const ChildDataPage = () => {
     };
 
     fetchAllAssessments();
-  }, [childId]);
+  }, [childId, isPreviewing, previewChildPage]);
 
   // Home view access state — drives the parent sharing panel and the staff home tab gate.
   const refreshHomeAccess = async () => {
@@ -175,7 +189,7 @@ const ChildDataPage = () => {
   };
 
   useEffect(() => {
-    if (!childId || !user?.role) return;
+    if (previewChildPage || !shouldLoadLiveRoleData(isPreviewing) || !childId || !user?.role) return;
     let cancelled = false;
     setLoadingHomeAccess(true);
     fetchHomeAccessState(childId)
@@ -191,18 +205,22 @@ const ChildDataPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [childId, user?.id, user?.role]);
+  }, [childId, user?.id, user?.role, isPreviewing, previewChildPage]);
 
   // Load cohort WPM stats for children (used for semicircular dial zones)
   useEffect(() => {
+    if (previewChildPage || !shouldLoadLiveRoleData(isPreviewing)) {
+      setCohortThresholdsByCategory(null);
+      return;
+    }
     axios.get(`/api/assessments/cohort-stats/children`).then((res) => {
       setCohortThresholdsByCategory(res.data?.cohortStats || null);
     }).catch(() => setCohortThresholdsByCategory(null));
-  }, []);
+  }, [isPreviewing, previewChildPage]);
 
   // Classmates: roster members from shared classrooms (admin / teacher only).
   useEffect(() => {
-    if (teacherAccessDenied || !(isAdmin() || isTeacher())) {
+    if (previewChildPage || !shouldLoadLiveRoleData(isPreviewing) || teacherAccessDenied || !(isAdmin() || isTeacher())) {
       setClassmates([]);
       return;
     }
@@ -245,7 +263,7 @@ const ChildDataPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [child, childId, teacherAccessDenied, isAdmin, isTeacher]);
+  }, [child, childId, teacherAccessDenied, isAdmin, isTeacher, isPreviewing, previewChildPage]);
 
   const handleSendInviteToParent = async () => {
     if (!inviteEmail.trim()) {
@@ -376,6 +394,25 @@ const ChildDataPage = () => {
   const ageInMonths = calculateAgeInMonths(child?.dateOfBirth);
   const enrolledClassrooms = Array.isArray(child?.classrooms) ? child.classrooms : [];
   const classroomCount = enrolledClassrooms.length;
+
+  if (previewChildPage) {
+    return (
+      <AppLayout breadcrumbs={[{ label: "My Child's Data", href: "/data/child/preview" }]}>
+        <div className="container mx-auto p-4 md:p-6 max-w-6xl">
+          <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
+            My Child&apos;s Data
+          </h1>
+          <p className="text-base-content/70 mb-6">
+            Home talk charts, transcripts, and notes a parent sees for their child.
+          </p>
+          <RolePreviewEmpty title="No home recordings yet" icon={User}>
+            Parents review their child&apos;s home talk here. This is a general preview —
+            no family&apos;s recordings or transcripts are loaded.
+          </RolePreviewEmpty>
+        </div>
+      </AppLayout>
+    );
+  }
 
   if (loading) {
     return (

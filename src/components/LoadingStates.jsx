@@ -132,12 +132,17 @@ export const EmptyState = ({
 };
 
 // Specific empty states
-export const EmptyTeachers = ({ onAdd }) => (
+export const EmptyTeachers = ({
+  onAdd,
+  title = "No Teachers Found",
+  description = "Start building your educational team by adding your first teacher to the platform.",
+  actionLabel = "Add Teacher",
+}) => (
   <EmptyState
     icon={Users}
-    title="No Teachers Found"
-    description="Start building your educational team by adding your first teacher to the platform."
-    actionLabel="Add Teacher"
+    title={title}
+    description={description}
+    actionLabel={actionLabel}
     onAction={onAdd}
   />
 );
