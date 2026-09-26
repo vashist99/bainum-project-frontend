@@ -20,6 +20,7 @@ export const COPY = Object.freeze({
     no: "No",
     recordsHere: "Records here",
     sharesAClassroom: "Shares a classroom, unless revoked",
+    coachClassRollup: "Rollup of their teachers' classrooms",
     unlessLeadTurnsOff: "Unless the lead turns it off",
     allowsReadingTheTranscript: "Allows reading the written transcript",
     onlyIfAdminAllows: "Only if the admin allows reading",
@@ -132,8 +133,8 @@ export const PATHS = Object.freeze([
         toPlace: "classroom",
         toColumn: "charts",
         toLabel: "Classroom charts",
-        labelKey: "sharesAClassroom",
-        cellLabelKey: "sharesAClassroom",
+        labelKey: "coachClassRollup",
+        cellLabelKey: "coachClassRollup",
         actors: Object.freeze(["coach", "teacher"]),
     },
     {

@@ -156,6 +156,10 @@ describe("accessModel", () => {
         assert.equal(coach.transcript, "arrow");
         assert.equal(coach.chartsPath, "classroom-contact");
         assert.equal(coach.transcriptPath, "turns-on-words");
+        const classroomContact = PATHS.find((path) => path.id === "classroom-contact");
+        assert.equal(classroomContact.labelKey, "coachClassRollup");
+        assert.match(COPY.coachClassRollup, /rollup/i);
+        assert.match(COPY.coachClassRollup, /teachers/i);
     });
 
     test("perspectiveEmphasis dims other actors unless All is selected", () => {
