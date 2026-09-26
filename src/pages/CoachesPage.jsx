@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router";
 import toast from "react-hot-toast";
 import {
   ClipboardList, UserPlus, UserMinus,
@@ -169,7 +170,14 @@ const CoachesPage = () => {
                           {coach.name?.charAt(0) || "C"}
                         </div>
                         <div>
-                          <h2 className="font-bold text-lg">{coach.name}</h2>
+                          <h2 className="font-bold text-lg">
+                            <Link
+                              to={`/coaches/${coach.id}`}
+                              className="hover:text-primary hover:underline"
+                            >
+                              {coach.name}
+                            </Link>
+                          </h2>
                           <p className="text-sm text-base-content/60">{coach.email}</p>
                         </div>
                       </div>

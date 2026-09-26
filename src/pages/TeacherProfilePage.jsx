@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router";
 import AppLayout from "../components/AppLayout";
-import { User, Mail, Building2, Mic, FileText, Download } from "lucide-react";
+import { User, Mail, Building2, Mic, Download } from "lucide-react";
 import axios from "../lib/axios";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
@@ -13,10 +13,9 @@ import {
   setObservationHidden,
   mergeObservationPatch,
 } from "../lib/observationApi.js";
-import { LanguageDevelopmentCharts } from "../components/LanguageDevelopmentCharts";
 import ClassroomUploadModal from "../components/ClassroomUploadModal";
 import TranscriptRecordCard from "../components/TranscriptRecordCard.jsx";
-import TranscriptList from "../components/TranscriptList.jsx";
+import TeacherClassroomTalkSections from "../components/TeacherClassroomTalkSections.jsx";
 import { buildTranscriptsWorkbook } from "../utils/classroomExcel";
 
 const TeacherProfilePage = () => {
@@ -95,9 +94,10 @@ const TeacherProfilePage = () => {
             : row
         )
       );
-      toast.success("Note saved");
+      toast.success("Comment posted");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Could not save note");
+      toast.error(error.response?.data?.message || "Could not post comment");
+      throw error;
     }
   };
 
@@ -243,81 +243,55 @@ const TeacherProfilePage = () => {
           </div>
         </div>
 
-        <LanguageDevelopmentCharts
+        <TeacherClassroomTalkSections
           assessments={assessments}
           viewMode={viewMode}
-          title="Language Development Analysis - Year Overview"
-          contextSubtitle="At School"
-          showWordScores
           cohortThresholdsByCategory={cohortThresholdsByCategory}
-        />
-
-        <div className="card bg-base-100 shadow-xl mb-6">
-          <div className="card-body">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-              <h2 className="card-title text-2xl flex items-center gap-2">
-                <FileText className="w-6 h-6 text-primary shrink-0" />
-                Transcripts
-              </h2>
-              {transcriptsWithContent.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleDownloadXlsx}
-                  disabled={downloadingXlsx}
-                  className="btn btn-primary btn-sm gap-2"
-                  title="Download all transcripts and per-category word counts as an Excel file"
-                >
-                  {downloadingXlsx ? (
-                    <span className="loading loading-spinner loading-xs" />
-                  ) : (
-                    <Download className="w-4 h-4" />
-                  )}
-                  Download All
-                </button>
+          emptyTranscriptMessage="No transcripts yet. Upload a classroom recording to get started."
+          headerAction={
+            <button
+              type="button"
+              onClick={handleDownloadXlsx}
+              disabled={downloadingXlsx}
+              className="btn btn-primary btn-sm gap-2"
+              title="Download all transcripts and per-category word counts as an Excel file"
+            >
+              {downloadingXlsx ? (
+                <span className="loading loading-spinner loading-xs" />
+              ) : (
+                <Download className="w-4 h-4" />
               )}
-            </div>
-
-            {transcriptsWithContent.length === 0 ? (
-              <div className="alert alert-info">
-                <FileText className="w-5 h-5" />
-                <span>No transcripts yet. Upload a classroom recording to get started.</span>
-              </div>
-            ) : (
-              <TranscriptList
-                items={[...transcriptsWithContent].sort(
-                  (a, b) => new Date(b.date) - new Date(a.date)
-                )}
-                emptyFilteredMessage="No transcripts in this date range."
-                renderItem={(assessment) => (
-                    <TranscriptRecordCard
-                      key={assessment._id}
-                      id={String(assessment._id)}
-                      date={assessment.date}
-                      activity={assessment.activity}
-                      activityContext={assessment.activityContext}
-                      location={assessment.location}
-                      durationSeconds={assessment.durationSeconds}
-                      wordCount={assessment.wordCount}
-                      wordsPerMinute={assessment.wordsPerMinute}
-                      categoryWPM={assessment.categoryWPM}
-                      categoryWordCount={assessment.categoryWordCount}
-                      transcript={assessment.transcript}
-                      ragSegments={assessment.ragSegments}
-                      onDelete={() => handleDeleteTeacherAssessment(assessment._id)}
-                      observationNote={assessment.observationNote}
-                      hidden={assessment.hidden}
-                      canHide={assessment.canHide}
-                      isPreviewing={isPreviewing}
-                      onSaveNote={(text) => handleSaveProfileNote(assessment, text)}
-                      onToggleHidden={(nextHidden) =>
-                        handleToggleProfileHidden(assessment, nextHidden)
-                      }
-                    />
-                )}
-              />
-            )}
-          </div>
-        </div>
+              Download All
+            </button>
+          }
+          renderCard={(assessment) => (
+            <TranscriptRecordCard
+              key={assessment._id}
+              id={String(assessment._id)}
+              date={assessment.date}
+              activity={assessment.activity}
+              activityContext={assessment.activityContext}
+              location={assessment.location}
+              durationSeconds={assessment.durationSeconds}
+              wordCount={assessment.wordCount}
+              wordsPerMinute={assessment.wordsPerMinute}
+              categoryWPM={assessment.categoryWPM}
+              categoryWordCount={assessment.categoryWordCount}
+              transcript={assessment.transcript}
+              ragSegments={assessment.ragSegments}
+              onDelete={() => handleDeleteTeacherAssessment(assessment._id)}
+              observationComments={assessment.observationComments}
+              observationNote={assessment.observationNote}
+              hidden={assessment.hidden}
+              canHide={assessment.canHide}
+              isPreviewing={isPreviewing}
+              onSaveNote={(text) => handleSaveProfileNote(assessment, text)}
+              onToggleHidden={(nextHidden) =>
+                handleToggleProfileHidden(assessment, nextHidden)
+              }
+            />
+          )}
+        />
       </div>
 
       {showUploadModal && (

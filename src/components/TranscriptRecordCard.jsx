@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { ChevronDown, MapPin, StickyNote, Trash2 } from "lucide-react";
+import { ChevronDown, MapPin, MessageSquare, Trash2 } from "lucide-react";
 import {
     highlightRAGSegments,
     getSegmentsForHighlighting,
 } from "../utils/ragHighlightSegments.js";
-import { observationNoteText } from "../utils/observationCard.js";
+import {
+    formatCommentTimestamp,
+    listObservationComments,
+} from "../utils/observationCard.js";
 import { previewWriteProps } from "../lib/viewAs.js";
 import InfoTip from "./InfoTip.jsx";
 
@@ -28,18 +31,21 @@ export default function TranscriptRecordCard({
     ragSegments,
     onDelete,
     observationNote,
+    observationComments,
     hidden,
     canHide,
     isPreviewing = false,
+    initialCommentsOpen = false,
     onSaveNote,
     onToggleHidden,
 }) {
     const segments = getSegmentsForHighlighting(transcript, ragSegments);
     const hasRagHighlights = Array.isArray(segments) && segments.length > 0;
     const formattedDate = formatDate(date);
-    const noteText = observationNoteText(observationNote);
-    const [noteOpen, setNoteOpen] = useState(false);
-    const [draft, setDraft] = useState(noteText);
+    const comments = listObservationComments({ observationComments, observationNote });
+    const [commentsOpen, setCommentsOpen] = useState(initialCommentsOpen);
+    const [draft, setDraft] = useState("");
+    const [posting, setPosting] = useState(false);
 
     const handleDelete = () => {
         if (typeof onDelete !== "function") return;
@@ -53,19 +59,27 @@ export default function TranscriptRecordCard({
         onDelete();
     };
 
-    const openNotes = (e) => {
+    const openComments = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setDraft(observationNoteText(observationNote));
-        setNoteOpen(true);
+        setCommentsOpen(true);
     };
 
-    const closeNotes = () => setNoteOpen(false);
+    const closeComments = () => setCommentsOpen(false);
 
-    const saveNotes = async () => {
-        if (typeof onSaveNote !== "function") return;
-        await onSaveNote(draft);
-        setNoteOpen(false);
+    const postComment = async () => {
+        if (typeof onSaveNote !== "function" || posting || isPreviewing) return;
+        const text = draft.trim();
+        if (!text) return;
+        setPosting(true);
+        try {
+            await onSaveNote(text);
+            setDraft("");
+        } catch {
+            // The page toasts the error and rethrows so the draft stays.
+        } finally {
+            setPosting(false);
+        }
     };
 
     return (
@@ -218,11 +232,6 @@ export default function TranscriptRecordCard({
                             })}
                         </div>
                     )}
-                    {noteText && (
-                        <p className="text-xs text-base-content/70 italic break-words">
-                            Note: {noteText}
-                        </p>
-                    )}
                     {(typeof onSaveNote === "function" || canHide) && (
                         <div className="flex flex-wrap items-center gap-2 pt-1">
                             {typeof onSaveNote === "function" && (
@@ -230,11 +239,10 @@ export default function TranscriptRecordCard({
                                     <button
                                         type="button"
                                         className="btn btn-ghost btn-sm gap-1.5 min-h-11"
-                                        onClick={openNotes}
-                                        {...previewWriteProps(isPreviewing)}
+                                        onClick={openComments}
                                     >
-                                        <StickyNote className="w-3.5 h-3.5" aria-hidden="true" />
-                                        Take Notes
+                                        <MessageSquare className="w-3.5 h-3.5" aria-hidden="true" />
+                                        Comments{comments.length > 0 ? ` (${comments.length})` : ""}
                                     </button>
                                     <InfoTip helpKey="control.takeNotes" />
                                 </span>
@@ -263,43 +271,77 @@ export default function TranscriptRecordCard({
                 </div>
             </div>
 
-            {noteOpen && (
-                <div className="modal modal-open" role="dialog" aria-labelledby={`note-title-${id}`}>
+            {commentsOpen && (
+                <div className="modal modal-open" role="dialog" aria-labelledby={`comments-title-${id}`}>
                     <div className="modal-box">
-                        <h3 id={`note-title-${id}`} className="font-bold text-lg">
-                            Take Notes
+                        <h3 id={`comments-title-${id}`} className="font-bold text-lg">
+                            Comments
                         </h3>
                         <p className="text-sm text-base-content/70 mt-1">
-                            One shared note for this recording. The latest save replaces the previous text.
+                            Comments stay with this recording. A post cannot be edited or deleted.
                         </p>
+                        {comments.length === 0 ? (
+                            <p className="text-sm text-base-content/60 mt-3">No comments yet.</p>
+                        ) : (
+                            <ul className="mt-3 max-h-64 space-y-3 overflow-y-auto">
+                                {comments.map((comment, index) => {
+                                    const when = formatCommentTimestamp(comment.createdAt);
+                                    return (
+                                        <li
+                                            key={`${comment.createdAt || "comment"}-${index}`}
+                                            className="rounded-lg bg-base-200 px-3 py-2"
+                                        >
+                                            <div className="flex flex-wrap items-baseline gap-x-2">
+                                                <span className="text-sm font-medium">
+                                                    {comment.authorName || "Unknown"}
+                                                </span>
+                                                {when && (
+                                                    <time
+                                                        className="text-xs text-base-content/50"
+                                                        dateTime={
+                                                            comment.createdAt
+                                                                ? new Date(comment.createdAt).toISOString()
+                                                                : undefined
+                                                        }
+                                                    >
+                                                        {when}
+                                                    </time>
+                                                )}
+                                            </div>
+                                            <p className="mt-1 text-sm whitespace-pre-wrap break-words">
+                                                {comment.text}
+                                            </p>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        )}
                         <textarea
-                            className="textarea textarea-bordered w-full min-h-32 mt-3"
+                            className="textarea textarea-bordered w-full min-h-24 mt-3"
                             value={draft}
                             onChange={(e) => setDraft(e.target.value)}
                             maxLength={4000}
-                            aria-label="Observation note"
+                            aria-label="Comment"
+                            placeholder="Write a comment"
                             {...previewWriteProps(isPreviewing)}
                         />
-                        {observationNote?.authorName && observationNote?.updatedAt && (
-                            <p className="text-xs text-base-content/50 mt-2">
-                                Last edited by {observationNote.authorName}
-                            </p>
-                        )}
                         <div className="modal-action">
-                            <button type="button" className="btn btn-ghost" onClick={closeNotes}>
-                                Cancel
+                            <button type="button" className="btn btn-ghost" onClick={closeComments}>
+                                Close
                             </button>
                             <button
                                 type="button"
                                 className="btn btn-primary"
-                                onClick={saveNotes}
-                                {...previewWriteProps(isPreviewing)}
+                                onClick={postComment}
+                                {...previewWriteProps(isPreviewing, {
+                                    disabled: posting || !draft.trim(),
+                                })}
                             >
-                                Save
+                                {posting ? "Posting…" : "Post"}
                             </button>
                         </div>
                     </div>
-                    <button type="button" className="modal-backdrop" onClick={closeNotes}>
+                    <button type="button" className="modal-backdrop" onClick={closeComments}>
                         close
                     </button>
                 </div>

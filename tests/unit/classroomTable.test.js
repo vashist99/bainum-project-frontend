@@ -19,7 +19,7 @@ describe("classrooms table — sortable columns", () => {
     test("declares stable keys for teacher, name, students, center", () => {
         assert.deepEqual(
             classroomsColumns.map((c) => c.key),
-            ["teacher", "name", "students", "center"]
+            ["teacher", "name", "students", "center", "ageGroup"]
         );
     });
 

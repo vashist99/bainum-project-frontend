@@ -314,9 +314,10 @@ const ChildDataPage = () => {
             : row
         )
       );
-      toast.success("Note saved");
+      toast.success("Comment posted");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Could not save note");
+      toast.error(error.response?.data?.message || "Could not post comment");
+      throw error;
     }
   };
 
@@ -943,6 +944,7 @@ const ChildDataPage = () => {
                           ? () => handleDeleteChildAssessment(assessment._id)
                           : undefined
                       }
+                      observationComments={assessment.observationComments}
                       observationNote={assessment.observationNote}
                       hidden={assessment.hidden}
                       canHide={assessment.canHide}

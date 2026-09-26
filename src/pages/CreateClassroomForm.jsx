@@ -6,6 +6,7 @@ import axios from "../lib/axios";
 import { schoolsFromListResponse } from "../utils/schools.js";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
+import { CLASSROOM_AGE_GROUPS } from "../utils/classroomAgeGroups.js";
 
 const CreateClassroomForm = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const CreateClassroomForm = () => {
   const [selectedCenter, setSelectedCenter] = useState("");
   const [selectedTeacherId, setSelectedTeacherId] = useState("");
   const [assistantTeacherId, setAssistantTeacherId] = useState("");
+  const [ageGroup, setAgeGroup] = useState("");
   // Teacher view: own record (name + center), displayed read-only.
   const [ownTeacher, setOwnTeacher] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -90,6 +92,9 @@ const CreateClassroomForm = () => {
       if (assistantTeacherId) {
         payload.assistantTeacherId = assistantTeacherId;
       }
+      if (ageGroup) {
+        payload.ageGroup = ageGroup;
+      }
       const response = await axios.post("/api/classrooms", payload);
       toast.success("Classroom created!");
       const id = response.data.classroom?.id;
@@ -145,6 +150,23 @@ const CreateClassroomForm = () => {
                       maxLength={80}
                       required
                     />
+                  </div>
+
+                  <div className="form-control w-full">
+                    <label className="label py-1">
+                      <span className="label-text font-semibold">Age group</span>
+                      <span className="label-text-alt text-base-content/60">Optional</span>
+                    </label>
+                    <select
+                      className="select select-bordered w-full"
+                      value={ageGroup}
+                      onChange={(e) => setAgeGroup(e.target.value)}
+                    >
+                      <option value="">Not set</option>
+                      {CLASSROOM_AGE_GROUPS.map((group) => (
+                        <option key={group} value={group}>{group}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {isAdmin() ? (

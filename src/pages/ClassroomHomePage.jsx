@@ -15,6 +15,7 @@ import {
   Trash2,
   Download,
   FileText,
+  Pencil,
 } from "lucide-react";
 import axios from "../lib/axios";
 import toast from "react-hot-toast";
@@ -128,6 +129,7 @@ const ClassroomHomePage = () => {
     classroom?.role === "lead" ||
     classroom?.role === "assistant" ||
     classroom?.role === "coach";
+  const canEditDetails = ["admin", "lead", "assistant", "coach"].includes(classroom?.role);
   // Show the Delete-classroom button only to admins + the classroom's
   // lead teacher (matches DELETE /api/classrooms/:id authorization).
   const canDelete = (() => {
@@ -237,9 +239,10 @@ const ClassroomHomePage = () => {
           String(row._id) === String(rec._id) ? mergeObservationPatch(row, payload) : row
         )
       );
-      toast.success("Note saved");
+      toast.success("Comment posted");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Could not save note");
+      toast.error(error.response?.data?.message || "Could not post comment");
+      throw error;
     }
   };
 
@@ -389,12 +392,25 @@ const ClassroomHomePage = () => {
                         <span className="truncate">Assistant: {classroom.assistantTeacher.name}</span>
                       </span>
                     )}
+                    {classroom.ageGroup && (
+                      <span className="truncate">Age group: {classroom.ageGroup}</span>
+                    )}
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 shrink-0">
                 <CurrentlyAccessingButton place="classroom" targetId={id} className="w-full sm:w-auto" />
+                {canEditDetails && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/classrooms/${id}/edit`)}
+                    className="btn btn-outline gap-2 w-full sm:w-auto"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Edit details
+                  </button>
+                )}
                 {!isReadOnlyView && (
                   <button
                     onClick={() => setShowAddParentsModal(true)}
@@ -641,6 +657,7 @@ const ClassroomHomePage = () => {
                           transcript={rec.transcript || ""}
                           ragSegments={rec.ragSegments}
                           onDelete={onDelete}
+                          observationComments={rec.observationComments}
                           observationNote={rec.observationNote}
                           hidden={rec.hidden}
                           canHide={rec.canHide}

@@ -71,7 +71,7 @@ export const HELP_TEXT = Object.freeze({
     "control.viewAsBanner":
         "You are looking at a general preview of this role. Exit to return to your own navigation. Nothing you do here is saved as that role.",
     "control.takeNotes":
-        "Add or replace the shared note on this recording. Anyone who can see the transcript can edit it; the latest save wins. Notes are included when you download Excel.",
+        "Add a comment on this recording. Anyone who can see the transcript can post. Comments show the author and time, and they cannot be edited or deleted. Comments are included when you download Excel.",
     "control.hideObservation":
         "Only the person who recorded this session can hide it. Hidden recordings disappear from everyone else's lists, charts, and Excel — including administrators.",
 });

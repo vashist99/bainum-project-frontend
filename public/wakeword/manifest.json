@@ -1,0 +1,6 @@
+{
+  "keywordModel": "hey_jarvis_v0.1.onnx",
+  "phrase": "Hey Jarvis",
+  "threshold": 0.5,
+  "vadThreshold": 0.3
+}

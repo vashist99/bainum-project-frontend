@@ -251,16 +251,53 @@ describe("TranscriptRecordCard — mobile-friendly layout", () => {
     });
 });
 
-describe("TranscriptRecordCard — notes and hide", () => {
-    test("does not render Take Notes or Hide Observation without handlers", () => {
+describe("TranscriptRecordCard — comments and hide", () => {
+    test("does not render Comments or Hide Observation without handlers", () => {
         const html = render(BASE_PROPS);
-        assert.doesNotMatch(html, /Take Notes/);
+        assert.doesNotMatch(html, /Comments/);
         assert.doesNotMatch(html, /Hide Observation/);
     });
 
-    test("renders Take Notes when onSaveNote is provided", () => {
-        const html = render({ ...BASE_PROPS, onSaveNote: () => {} });
-        assert.match(html, /Take Notes/);
+    test("renders a comment count and keeps comment text off the card", () => {
+        const html = render({
+            ...BASE_PROPS,
+            onSaveNote: () => {},
+            observationComments: [
+                { text: "Check the fossil table.", authorName: "Riley", createdAt: "2026-04-12T15:00:00.000Z" },
+            ],
+        });
+        assert.match(html, /Comments \(1\)/);
+        assert.doesNotMatch(html, /Check the fossil table/);
+    });
+
+    test("popup lists author, time, and text oldest first", () => {
+        const html = render({
+            ...BASE_PROPS,
+            onSaveNote: () => {},
+            initialCommentsOpen: true,
+            observationComments: [
+                { text: "Second", authorName: "Ada", createdAt: "2026-04-13T15:00:00.000Z" },
+                { text: "First look", authorName: "Riley", createdAt: "2026-04-12T15:00:00.000Z" },
+            ],
+        });
+        assert.match(html, /No comments yet|First look/);
+        assert.match(html, /Riley/);
+        assert.match(html, /Ada/);
+        const first = html.indexOf("First look");
+        const second = html.indexOf("Second");
+        assert.ok(first !== -1 && second !== -1 && first < second);
+        assert.match(html, /aria-label="Comment"/);
+    });
+
+    test("preview disables the composer", () => {
+        const html = render({
+            ...BASE_PROPS,
+            onSaveNote: () => {},
+            initialCommentsOpen: true,
+            isPreviewing: true,
+        });
+        assert.match(html, /No comments yet/);
+        assert.match(html, /disabled/);
     });
 
     test("renders Hide Observation only when canHide is true", () => {
@@ -281,13 +318,6 @@ describe("TranscriptRecordCard — notes and hide", () => {
         assert.doesNotMatch(noHide, /Hide Observation/);
     });
 
-    test("shows the shared note preview when text is present", () => {
-        const html = render({
-            ...BASE_PROPS,
-            observationNote: { text: "Check the fossil table." },
-        });
-        assert.match(html, /Check the fossil table/);
-    });
 });
 
 describe("TranscriptRecordCard — RAG highlighting", () => {

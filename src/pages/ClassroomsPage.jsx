@@ -45,7 +45,7 @@ const ClassroomsPage = () => {
   const term = searchTerm.trim().toLowerCase();
   const filteredBase = term
     ? classrooms.filter((c) =>
-        [c.name, c.teacher?.name, c.assistantTeacher?.name, c.center]
+        [c.name, c.teacher?.name, c.assistantTeacher?.name, c.center, c.ageGroup]
           .filter(Boolean)
           .some((v) => v.toLowerCase().includes(term))
       )
@@ -179,6 +179,7 @@ const ClassroomsPage = () => {
                                   <span className="text-base-content/50">—</span>
                                 )}
                               </td>
+                              <td>{classroom.ageGroup || "—"}</td>
                               <td>{classroom.assistantTeacher?.name || "—"}</td>
                             </tr>
                           ))}

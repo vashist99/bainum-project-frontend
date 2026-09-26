@@ -20,11 +20,13 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ClassroomsPage from './pages/ClassroomsPage';
 import CreateClassroomForm from './pages/CreateClassroomForm';
+import EditClassroomForm from './pages/EditClassroomForm';
 import ClassroomHomePage from './pages/ClassroomHomePage';
 import ParentHomeRecordingPage from './pages/ParentHomeRecordingPage';
 import SettingsPage from './pages/SettingsPage';
 import AboutPage from './pages/AboutPage';
 import CoachesPage from './pages/CoachesPage';
+import CoachPerformancePage from './pages/CoachPerformancePage';
 import CoachRegisterPage from './pages/CoachRegisterPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -63,6 +65,11 @@ const App = () => {
           <CreateClassroomForm />
         </ProtectedRoute>
       } />
+      <Route path="/classrooms/:id/edit" element={
+        <ProtectedRoute skipParentHomeRedirect>
+          <EditClassroomForm />
+        </ProtectedRoute>
+      } />
       <Route path="/classrooms/:id" element={
         <ProtectedRoute skipParentHomeRedirect>
           <ClassroomHomePage />
@@ -89,6 +96,11 @@ const App = () => {
       <Route path="/coaches" element={
         <ProtectedRoute requiredRole="admin">
           <CoachesPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/coaches/:coachId" element={
+        <ProtectedRoute requiredRole="admin">
+          <CoachPerformancePage />
         </ProtectedRoute>
       } />
       <Route path="/teachers" element={

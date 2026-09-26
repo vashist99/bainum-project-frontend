@@ -14,6 +14,7 @@ export const classroomsColumns = [
     { key: "name", label: "Classroom", getter: (c) => c?.name },
     { key: "students", label: "Enrolled children", getter: (c) => c?.childCount ?? 0 },
     { key: "center", label: "School", getter: (c) => c?.center },
+    { key: "ageGroup", label: "Age group", getter: (c) => c?.ageGroup },
 ];
 
 /**

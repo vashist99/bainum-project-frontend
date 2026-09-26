@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { School, Building2, Users } from "lucide-react";
+import { School, Building2, Users, Pencil } from "lucide-react";
 import { classroomCardTitle } from "../utils/classroomTable.js";
 
 /**
@@ -46,6 +46,9 @@ const ClassroomCard = ({ classroom, variant = "staff" }) => {
           <Building2 className="w-4 h-4 shrink-0" />
           <span className="truncate">{classroom.center || "—"}</span>
         </p>
+        {classroom.ageGroup && (
+          <p className="text-xs text-base-content/60 truncate">{classroom.ageGroup}</p>
+        )}
       </div>
       {isParentView && (
         <div className="mt-3 pt-3 border-t border-base-200">
@@ -81,12 +84,26 @@ const ClassroomCard = ({ classroom, variant = "staff" }) => {
   }
 
   return (
-    <button
-      onClick={() => navigate(`/classrooms/${classroom.id}`)}
-      className="card bg-base-100 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-200 text-left border border-base-200 hover:border-primary/50 w-full"
-    >
-      {body}
-    </button>
+    <div className="card bg-base-100 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-200 text-left border border-base-200 hover:border-primary/50 w-full">
+      <button
+        type="button"
+        onClick={() => navigate(`/classrooms/${classroom.id}`)}
+        className="text-left w-full"
+      >
+        {body}
+      </button>
+      <div className="card-actions justify-end px-5 pb-5 sm:px-6 sm:pb-6">
+        <button
+          type="button"
+          className="btn btn-outline btn-sm gap-2"
+          aria-label={`Edit ${classroom.name || "classroom"}`}
+          onClick={() => navigate(`/classrooms/${classroom.id}/edit`)}
+        >
+          <Pencil className="w-4 h-4" />
+          Edit
+        </button>
+      </div>
+    </div>
   );
 };
 

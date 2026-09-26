@@ -31,6 +31,31 @@ describe("currently accessing helpers", () => {
         assert.equal(canToggleViewer({ canSwitch: true, switchable: true, isPreviewing: true }), false);
     });
 
+    test("a parent home list labels the assistant and can switch that row alone", () => {
+        const homeViewers = [
+            { id: "lead", name: "Lead", role: "teacher", slot: "lead", switchable: true },
+            { id: "asst", name: "Aide", role: "teacher", slot: "assistant", switchable: true },
+        ];
+        assert.deepEqual(
+            homeViewers.map((viewer) => viewerRoleLabel(viewer.role, viewer.slot)),
+            ["Lead teacher", "Assistant teacher"]
+        );
+        assert.equal(
+            canToggleViewer({ canSwitch: true, switchable: homeViewers[1].switchable, isPreviewing: false }),
+            true
+        );
+        const classroomAssistant = { role: "teacher", slot: "assistant", switchable: false };
+        assert.equal(
+            canToggleViewer({
+                canSwitch: true,
+                switchable: classroomAssistant.switchable,
+                isPreviewing: false,
+            }),
+            false
+        );
+        assert.equal(viewerRoleLabel(classroomAssistant.role, classroomAssistant.slot), "Assistant teacher");
+    });
+
     test("listedViewers drops admins so they are not named in the list", () => {
         const rows = listedViewers([
             { id: "a1", name: "Ada", role: "admin" },

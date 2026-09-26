@@ -32,7 +32,18 @@ const FIXTURE_RECORDINGS = [
             literature: 9,
             language: 68,
         },
-        observationNote: { text: "Circle time felt lively." },
+        observationComments: [
+            {
+                text: "Circle time felt lively.",
+                authorName: "Riley",
+                createdAt: "2026-03-15T15:00:00.000Z",
+            },
+            {
+                text: "Agreed on the fossil table.",
+                authorName: "Ada",
+                createdAt: "2026-03-15T16:00:00.000Z",
+            },
+        ],
     },
     {
         id: "rec-2",
@@ -73,7 +84,7 @@ describe("buildClassroomWorkbook", () => {
             "Literacy WPM",
             "Language Words",
             "Language WPM",
-            "Notes",
+            "Comments",
         ]);
     });
 
@@ -86,7 +97,7 @@ describe("buildClassroomWorkbook", () => {
             "Uploaded By",
             "Activity",
             "Transcript",
-            "Notes",
+            "Comments",
         ]);
     });
 
@@ -157,18 +168,36 @@ describe("buildClassroomWorkbook", () => {
         assert.equal(sheet.getCell("D3").value, "");
     });
 
-    test("Notes column is written on both two-sheet tabs", async () => {
+    test("Comments column is written on both two-sheet tabs", async () => {
         const wb = buildClassroomWorkbook("Toddler Room", FIXTURE_RECORDINGS);
-        assert.equal(
+        for (const value of [
             wb.getWorksheet("Recordings").getCell("O2").value,
-            "Circle time felt lively."
-        );
-        assert.equal(
             wb.getWorksheet("Transcripts").getCell("E2").value,
-            "Circle time felt lively."
-        );
+        ]) {
+            assert.match(value, /Riley/);
+            assert.match(value, /Circle time felt lively/);
+            assert.match(value, /Ada/);
+            assert.match(value, /Agreed on the fossil table/);
+            assert.ok(value.indexOf("Circle time felt lively") < value.indexOf("Agreed on the fossil table"));
+        }
         assert.equal(wb.getWorksheet("Recordings").getCell("O3").value, "");
         assert.equal(wb.getWorksheet("Transcripts").getCell("E3").value, "");
+    });
+
+    test("a legacy note is exported as the first comment", async () => {
+        const wb = buildClassroomWorkbook("Toddler Room", [
+            {
+                date: "2026-03-15T12:00:00.000Z",
+                observationNote: {
+                    text: "Old note",
+                    authorName: "Riley",
+                    updatedAt: "2026-03-15T15:00:00.000Z",
+                },
+            },
+        ]);
+        const value = wb.getWorksheet("Transcripts").getCell("E2").value;
+        assert.match(value, /Riley/);
+        assert.match(value, /Old note/);
     });
 
     test("handles an empty recordings array gracefully", async () => {
@@ -212,7 +241,13 @@ const SINGLE_SHEET_FIXTURE = [
             literature: 15,
             language: 127,
         },
-        observationNote: { text: "Profile note" },
+        observationComments: [
+            {
+                text: "Profile note",
+                authorName: "Riley",
+                createdAt: "2026-04-12T15:00:00.000Z",
+            },
+        ],
     },
     {
         date: "2026-04-05T10:00:00.000Z",
@@ -260,7 +295,7 @@ describe("buildTranscriptsWorkbook(single-sheet layout)", () => {
             "Language Words",
             "Language WPM",
             "Transcript",
-            "Notes",
+            "Comments",
         ]);
     });
 
@@ -310,7 +345,8 @@ describe("buildTranscriptsWorkbook(single-sheet layout)", () => {
             "First line.\nSecond line with newline."
         );
         assert.equal(sheet.getCell("P3").value, ""); // missing → blank string
-        assert.equal(sheet.getCell("Q2").value, "Profile note");
+        assert.match(sheet.getCell("Q2").value, /Riley/);
+        assert.match(sheet.getCell("Q2").value, /Profile note/);
         assert.equal(sheet.getCell("Q3").value, "");
     });
 

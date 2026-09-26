@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 
 import {
     viewerCanHideObservation,
-    observationNoteText,
+    listObservationComments,
+    formatObservationCommentsCell,
 } from "../../src/utils/observationCard.js";
 
 describe("viewerCanHideObservation", () => {
@@ -26,10 +27,43 @@ describe("viewerCanHideObservation", () => {
     });
 });
 
-describe("observationNoteText", () => {
-    test("reads text from the shared note object", () => {
-        assert.equal(observationNoteText({ text: "  Hello  " }), "Hello");
-        assert.equal(observationNoteText("plain"), "plain");
-        assert.equal(observationNoteText(null), "");
+describe("listObservationComments", () => {
+    test("orders comments oldest first and falls back to a legacy note", () => {
+        const comments = listObservationComments({
+            observationComments: [
+                { text: "Later", authorName: "Ada", createdAt: "2026-03-02T15:00:00.000Z" },
+                { text: "Earlier", authorName: "Riley", createdAt: "2026-03-01T15:00:00.000Z" },
+            ],
+        });
+        assert.deepEqual(
+            comments.map((comment) => comment.text),
+            ["Earlier", "Later"]
+        );
+
+        const legacy = listObservationComments({
+            observationNote: {
+                text: "Old note",
+                authorName: "Riley",
+                updatedAt: "2026-03-01T15:00:00.000Z",
+            },
+        });
+        assert.equal(legacy[0].text, "Old note");
+        assert.equal(legacy[0].authorName, "Riley");
+        assert.equal(listObservationComments(null).length, 0);
+    });
+
+    test("formats a comment cell with author, time, and text", () => {
+        const cell = formatObservationCommentsCell({
+            observationComments: [
+                {
+                    text: "First look",
+                    authorName: "Riley",
+                    createdAt: "2026-03-01T15:00:00.000Z",
+                },
+            ],
+        });
+        assert.match(cell, /Riley/);
+        assert.match(cell, /First look/);
+        assert.equal(formatObservationCommentsCell({}).length, 0);
     });
 });

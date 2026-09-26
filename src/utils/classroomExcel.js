@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { formatObservationCommentsCell } from "./observationCard.js";
 
 const TWO_SHEET = "two-sheet";
 const SINGLE_SHEET = "single-sheet";
@@ -72,7 +73,7 @@ function buildTwoSheets(wb, recordings) {
         { header: "Literacy WPM", key: "literacyWpm", width: 12 },
         { header: "Language Words", key: "languageWords", width: 14 },
         { header: "Language WPM", key: "languageWpm", width: 12 },
-        { header: "Notes", key: "notes", width: 40 },
+        { header: "Comments", key: "comments", width: 40 },
     ];
 
     const transcriptsSheet = wb.addWorksheet("Transcripts");
@@ -81,7 +82,7 @@ function buildTwoSheets(wb, recordings) {
         { header: "Uploaded By", key: "uploadedBy", width: 22 },
         { header: "Activity", key: "activity", width: 22 },
         { header: "Transcript", key: "transcript", width: 80 },
-        { header: "Notes", key: "notes", width: 40 },
+        { header: "Comments", key: "comments", width: 40 },
     ];
 
     for (const rec of recordings || []) {
@@ -105,7 +106,7 @@ function buildTwoSheets(wb, recordings) {
             literacyWpm: numeric(wpm?.literature),
             languageWords: numeric(cat?.language),
             languageWpm: numeric(wpm?.language),
-            notes: noteText(rec),
+            comments: commentText(rec),
         });
 
         transcriptsSheet.addRow({
@@ -113,7 +114,7 @@ function buildTwoSheets(wb, recordings) {
             uploadedBy: rec?.uploadedBy || "",
             activity: rec?.activity || "",
             transcript: rec?.transcript || "",
-            notes: noteText(rec),
+            comments: commentText(rec),
         });
     }
 
@@ -143,7 +144,7 @@ function buildSingleSheet(wb, recordings) {
         { header: "Language Words", key: "languageWords", width: 14 },
         { header: "Language WPM", key: "languageWpm", width: 12 },
         { header: "Transcript", key: "transcript", width: 80 },
-        { header: "Notes", key: "notes", width: 40 },
+        { header: "Comments", key: "comments", width: 40 },
     ];
 
     for (const rec of recordings || []) {
@@ -169,7 +170,7 @@ function buildSingleSheet(wb, recordings) {
             languageWords: numeric(cat?.language),
             languageWpm: numeric(wpm?.language),
             transcript: rec?.transcript || "",
-            notes: noteText(rec),
+            comments: commentText(rec),
         });
     }
 
@@ -182,8 +183,8 @@ function buildSingleSheet(wb, recordings) {
 }
 
 // ─── shared helpers ──────────────────────────────────────────────────
-function noteText(rec) {
-    return String(rec?.observationNote?.text ?? rec?.notes ?? "").trim();
+function commentText(rec) {
+    return formatObservationCommentsCell(rec);
 }
 
 function parseDate(value) {

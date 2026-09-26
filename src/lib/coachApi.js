@@ -43,6 +43,11 @@ export async function fetchCoachOverview() {
     return response.data;
 }
 
+export async function fetchCoachPerformance(coachId) {
+    const response = await axios.get(`/api/coaches/${coachId}/performance`);
+    return response.data;
+}
+
 export async function requestClassroomAccess(classroomId) {
     const response = await axios.post("/api/coaches/grants/request", { classroomId });
     return response.data;

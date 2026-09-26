@@ -14,7 +14,8 @@ export function mergeObservationPatch(item, payload) {
     if (!item || !payload) return item;
     return {
         ...item,
-        observationNote: payload.observationNote,
+        observationComments: payload.observationComments ?? item.observationComments ?? [],
+        observationNote: null,
         hidden: payload.hidden,
         recordedById: payload.recordedById ?? item.recordedById,
         canHide: payload.canHide ?? item.canHide,

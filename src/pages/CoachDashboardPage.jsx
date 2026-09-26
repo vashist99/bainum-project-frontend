@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import toast from "react-hot-toast";
-import { School, Users, Sparkles, Eye, FileText, Lock } from "lucide-react";
+import { School, Users, Sparkles, Eye, FileText, Lock, Pencil } from "lucide-react";
 import AppLayout from "../components/AppLayout";
 import { useAuth } from "../contexts/AuthContext";
 import { useViewAs } from "../contexts/ViewAsContext";
 import { shouldLoadLiveRoleData } from "../lib/viewAs.js";
 import { fetchCoachOverview } from "../lib/coachApi";
+import CoachPerformanceSection from "../components/CoachPerformanceSection.jsx";
 
 const TIER_LABEL = {
     none: { text: "Charts off", badge: "badge-ghost", icon: Lock },
@@ -73,6 +74,15 @@ const CoachDashboardPage = () => {
                     </div>
                 ) : (
                     <>
+                        <CoachPerformanceSection
+                            coachId={user?.id}
+                            enabled={!isPreviewing}
+                            emptyTeachersMessage={
+                                isPreviewing
+                                    ? "Coaches see one combined chart for every teacher assigned to them. This is a general preview — no assignments are listed."
+                                    : "No teachers are assigned to you yet. Invite a teacher from People → Teachers, or wait for an administrator to assign one."
+                            }
+                        />
                         <div className="mb-8">
                             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                                 <Users className="w-5 h-5 text-primary" />
@@ -138,6 +148,14 @@ const CoachDashboardPage = () => {
                                                             : ""}
                                                     </p>
                                                     <div className="card-actions justify-end mt-2">
+                                                        <Link
+                                                            to={`/classrooms/${room.id}/edit`}
+                                                            className="btn btn-outline btn-sm gap-2"
+                                                            aria-label={`Edit ${room.name || "classroom"}`}
+                                                        >
+                                                            <Pencil className="w-4 h-4" />
+                                                            Edit
+                                                        </Link>
                                                         <Link
                                                             to={`/classrooms/${room.id}`}
                                                             className="btn btn-primary btn-sm gap-2"
