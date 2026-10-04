@@ -25,7 +25,6 @@ const TeacherDataDetailPage = () => {
   const [teacher, setTeacher] = useState(null);
   const [assessments, setAssessments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState("dotmatrix");
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [cohortThresholdsByCategory, setCohortThresholdsByCategory] = useState(null);
   const [parentAccessDenied, setParentAccessDenied] = useState(false);
@@ -241,16 +240,6 @@ const TeacherDataDetailPage = () => {
                 Record
               </button>
             )}
-            <div className="form-control">
-            <select
-              className="select select-bordered select-primary"
-              value={viewMode}
-              onChange={(e) => setViewMode(e.target.value)}
-            >
-              <option value="dotmatrix">Dot Matrix</option>
-              <option value="semicircular">Semicircular Dials</option>
-            </select>
-            </div>
           </div>
         </div>
 
@@ -285,7 +274,6 @@ const TeacherDataDetailPage = () => {
 
         <TeacherClassroomTalkSections
           assessments={assessments}
-          viewMode={viewMode}
           cohortThresholdsByCategory={cohortThresholdsByCategory}
           emptyTranscriptMessage="No transcripts yet for this teacher."
           headerAction={
@@ -336,6 +324,7 @@ const TeacherDataDetailPage = () => {
               wordsPerMinute={assessment.wordsPerMinute}
               categoryWPM={assessment.categoryWPM}
               categoryWordCount={assessment.categoryWordCount}
+              languageFeatures={assessment.languageFeatures}
               transcript={assessment.transcript}
               ragSegments={assessment.ragSegments}
               onDelete={() => handleDeleteTeacherAssessment(assessment._id)}

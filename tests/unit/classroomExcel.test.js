@@ -84,6 +84,15 @@ describe("buildClassroomWorkbook", () => {
             "Literacy WPM",
             "Language Words",
             "Language WPM",
+            "Different Words",
+            "Word Variety (%)",
+            "Why/How Questions",
+            "Ideas (Utterances)",
+            "Words per Idea",
+            "Connecting Words",
+            "Content Words",
+            "Big-Idea Phrases",
+            "Activity Bucket",
             "Comments",
         ]);
     });
@@ -171,8 +180,8 @@ describe("buildClassroomWorkbook", () => {
     test("Comments column is written on both two-sheet tabs", async () => {
         const wb = buildClassroomWorkbook("Toddler Room", FIXTURE_RECORDINGS);
         for (const value of [
-            wb.getWorksheet("Recordings").getCell("O2").value,
-            wb.getWorksheet("Transcripts").getCell("E2").value,
+            wb.getWorksheet("Recordings").getRow(2).getCell("comments").value,
+            wb.getWorksheet("Transcripts").getRow(2).getCell("comments").value,
         ]) {
             assert.match(value, /Riley/);
             assert.match(value, /Circle time felt lively/);
@@ -180,8 +189,9 @@ describe("buildClassroomWorkbook", () => {
             assert.match(value, /Agreed on the fossil table/);
             assert.ok(value.indexOf("Circle time felt lively") < value.indexOf("Agreed on the fossil table"));
         }
-        assert.equal(wb.getWorksheet("Recordings").getCell("O3").value, "");
-        assert.equal(wb.getWorksheet("Transcripts").getCell("E3").value, "");
+        assert.equal(wb.getWorksheet("Recordings").getRow(3).getCell("comments").value, "");
+        assert.equal(wb.getWorksheet("Transcripts").getRow(3).getCell("comments").value, "");
+        assert.equal(wb.getWorksheet("Recordings").getRow(2).getCell("differentWords").value, "");
     });
 
     test("a legacy note is exported as the first comment", async () => {
@@ -294,6 +304,15 @@ describe("buildTranscriptsWorkbook(single-sheet layout)", () => {
             "Literacy WPM",
             "Language Words",
             "Language WPM",
+            "Different Words",
+            "Word Variety (%)",
+            "Why/How Questions",
+            "Ideas (Utterances)",
+            "Words per Idea",
+            "Connecting Words",
+            "Content Words",
+            "Big-Idea Phrases",
+            "Activity Bucket",
             "Transcript",
             "Comments",
         ]);
@@ -339,15 +358,14 @@ describe("buildTranscriptsWorkbook(single-sheet layout)", () => {
             layout: "single-sheet",
         });
         const sheet = wb.getWorksheet("Transcripts");
-        // Last column = column 16 (P).
         assert.equal(
-            sheet.getCell("P2").value,
+            sheet.getRow(2).getCell("transcript").value,
             "First line.\nSecond line with newline."
         );
-        assert.equal(sheet.getCell("P3").value, ""); // missing → blank string
-        assert.match(sheet.getCell("Q2").value, /Riley/);
-        assert.match(sheet.getCell("Q2").value, /Profile note/);
-        assert.equal(sheet.getCell("Q3").value, "");
+        assert.equal(sheet.getRow(3).getCell("transcript").value, "");
+        assert.match(sheet.getRow(2).getCell("comments").value, /Riley/);
+        assert.match(sheet.getRow(2).getCell("comments").value, /Profile note/);
+        assert.equal(sheet.getRow(3).getCell("comments").value, "");
     });
 
     test("emits one data row per recording", () => {

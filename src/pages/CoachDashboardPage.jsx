@@ -8,6 +8,9 @@ import { useViewAs } from "../contexts/ViewAsContext";
 import { shouldLoadLiveRoleData } from "../lib/viewAs.js";
 import { fetchCoachOverview } from "../lib/coachApi";
 import CoachPerformanceSection from "../components/CoachPerformanceSection.jsx";
+import InfoTip from "../components/InfoTip.jsx";
+import { presetRange } from "../lib/talkMetrics.js";
+import { scanStats, useCoachClassroomScan } from "../lib/coachClassroomScan.js";
 
 const TIER_LABEL = {
     none: { text: "Charts off", badge: "badge-ghost", icon: Lock },
@@ -21,6 +24,12 @@ const CoachDashboardPage = () => {
     const [teachers, setTeachers] = useState([]);
     const [classrooms, setClassrooms] = useState([]);
     const [loading, setLoading] = useState(true);
+    const scan = useCoachClassroomScan(classrooms);
+    const applyScanPreset = (preset) => {
+        const next = presetRange(preset);
+        scan.setStart(next.start);
+        scan.setEnd(next.end);
+    };
 
     const breadcrumbs = [{ label: "Dashboard", href: "/home" }];
 
@@ -114,7 +123,26 @@ const CoachDashboardPage = () => {
                             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                                 <School className="w-5 h-5 text-primary" />
                                 Classrooms
+                                <InfoTip helpKey="metric.coachScan" />
                             </h2>
+                            {classrooms.length > 0 && (
+                                <div className="grid grid-cols-2 gap-x-2 gap-y-2 mb-4 w-full min-w-0 sm:flex sm:flex-wrap sm:items-end">
+                                    <label className="form-control min-w-0">
+                                        <span className="label-text text-xs inline-flex items-center gap-1 whitespace-nowrap">From <InfoTip helpKey="metric.dateRange" /></span>
+                                        <input type="date" className="input input-bordered input-sm w-full min-w-0" value={scan.start} onChange={(event) => scan.setStart(event.target.value)} />
+                                    </label>
+                                    <label className="form-control min-w-0">
+                                        <span className="label-text text-xs">To</span>
+                                        <input type="date" className="input input-bordered input-sm w-full min-w-0" value={scan.end} onChange={(event) => scan.setEnd(event.target.value)} />
+                                    </label>
+                                    <div className="col-span-2 grid grid-cols-2 gap-1 sm:contents">
+                                        <button type="button" className="btn btn-ghost btn-sm w-full sm:w-auto" onClick={() => applyScanPreset("this-week")}>This week</button>
+                                        <button type="button" className="btn btn-ghost btn-sm w-full sm:w-auto" onClick={() => applyScanPreset("this-month")}>This month</button>
+                                        <button type="button" className="btn btn-ghost btn-sm w-full sm:w-auto" onClick={() => applyScanPreset("this-school-year")}>This school year</button>
+                                        <button type="button" className="btn btn-ghost btn-sm w-full sm:w-auto" onClick={() => applyScanPreset("all")}>All</button>
+                                    </div>
+                                </div>
+                            )}
                             {classrooms.length === 0 ? (
                                 <div className="card bg-base-100 shadow border border-dashed border-base-300">
                                     <div className="card-body items-center text-center py-10">
@@ -130,6 +158,8 @@ const CoachDashboardPage = () => {
                                     {classrooms.map((room) => {
                                         const tier = TIER_LABEL[room.accessTier] || TIER_LABEL.aggregate;
                                         const TierIcon = tier.icon;
+                                        const stats = scanStats(scan.byRoom[room.id], scan.start, scan.end);
+                                        const showNumber = (value) => (value == null ? "—" : value);
                                         return (
                                             <div key={room.id} className="card bg-base-100 shadow-xl border border-base-200">
                                                 <div className="card-body">
@@ -147,6 +177,20 @@ const CoachDashboardPage = () => {
                                                             ? ` · Assistant: ${room.assistantTeacher.name}`
                                                             : ""}
                                                     </p>
+                                                    {room.accessTier === "none" || room.accessTier === "requested" ? null : stats.status === "reversed" ? (
+                                                        <p className="text-sm text-base-content/70">Pick an end date on or after the start date.</p>
+                                                    ) : stats.status === "unavailable" ? (
+                                                        <p className="text-sm text-base-content/70">Talk data unavailable for these dates.</p>
+                                                    ) : stats.status === "loading" ? (
+                                                        <p className="text-sm text-base-content/60">Loading talk data…</p>
+                                                    ) : (
+                                                        <ul className="text-sm space-y-1">
+                                                            <li>{stats.recordings} recording{stats.recordings === 1 ? "" : "s"}</li>
+                                                            <li>Why/how questions per minute {showNumber(stats.whyHow)}</li>
+                                                            <li>Different words per minute {showNumber(stats.differentWords)}</li>
+                                                            <li>Most recorded activity {stats.top || "—"}</li>
+                                                        </ul>
+                                                    )}
                                                     <div className="card-actions justify-end mt-2">
                                                         <Link
                                                             to={`/classrooms/${room.id}/edit`}

@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import AppLayout from "../components/AppLayout";
 import ClassroomInviteModal from "../components/ClassroomInviteModal";
 import ClassroomUploadModal from "../components/ClassroomUploadModal";
-import { LanguageDevelopmentCharts } from "../components/LanguageDevelopmentCharts";
+import TalkMetricsDeck from "../components/TalkMetricsDeck.jsx";
 import {
   School,
   User,
@@ -23,6 +23,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { buildClassroomWorkbook } from "../utils/classroomExcel";
 import TranscriptRecordCard from "../components/TranscriptRecordCard.jsx";
 import TranscriptList from "../components/TranscriptList.jsx";
+import TranscriptPager, { useTranscriptPage } from "../components/TranscriptPager.jsx";
 import { canRemoveChildFromClassroom } from "../utils/classroomMembershipUi.js";
 import CurrentlyAccessingButton from "../components/CurrentlyAccessingButton.jsx";
 import { useViewAs } from "../contexts/ViewAsContext";
@@ -31,8 +32,6 @@ import {
   setObservationHidden,
   mergeObservationPatch,
 } from "../lib/observationApi.js";
-
-const CATEGORIES = ["science", "social", "literature", "language"];
 
 const ClassroomHomePage = () => {
   const { id } = useParams();
@@ -44,10 +43,10 @@ const ClassroomHomePage = () => {
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [assessments, setAssessments] = useState([]);
+  const recordingPage = useTranscriptPage(assessments);
   const [cohortStats, setCohortStats] = useState(null);
   const [showAddParentsModal, setShowAddParentsModal] = useState(false);
   const [showRecordModal, setShowRecordModal] = useState(false);
-  const [viewMode, setViewMode] = useState("dotmatrix"); // "dotmatrix" or "semicircular"
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [transcripts, setTranscripts] = useState([]);
@@ -300,33 +299,6 @@ const ClassroomHomePage = () => {
     }
   };
 
-  // Dot matrix shows the SUM of per-category WPM across the classroom's
-  // recordings for each month. LanguageDevelopmentCharts averages the rows it
-  // receives per month, so we pre-sum into one synthetic row per month
-  // (average of a single row = the sum). Dials get the raw recordings
-  // (averaged) with classroom-scoped threshold markers.
-  const summedMonthlyRows = useMemo(() => {
-    const sums = {};
-    assessments.forEach((a) => {
-      if (!a?.date) return;
-      const date = new Date(a.date);
-      if (isNaN(date.getTime())) return;
-      const month = date.getMonth();
-      CATEGORIES.forEach((cat) => {
-        const v = a.categoryWPM?.[cat];
-        if (v != null && !isNaN(v)) {
-          if (!sums[month]) sums[month] = {};
-          sums[month][cat] = (sums[month][cat] || 0) + v;
-        }
-      });
-    });
-    const year = new Date().getFullYear();
-    return Object.entries(sums).map(([month, categoryWPM]) => ({
-      date: new Date(year, Number(month), 15).toISOString(),
-      categoryWPM,
-    }));
-  }, [assessments]);
-
   if (loading) {
     return (
       <div className="min-h-screen bg-base-200 flex items-center justify-center">
@@ -517,31 +489,15 @@ const ClassroomHomePage = () => {
             </div>
             )}
 
-            {/* Aggregated visualizations */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-              <h2 className="text-xl font-bold text-base-content">Classroom Language Analysis</h2>
-              <select
-                className="select select-bordered select-sm w-full sm:w-auto"
-                value={viewMode}
-                onChange={(e) => setViewMode(e.target.value)}
-              >
-                <option value="dotmatrix">Dot Matrix</option>
-                <option value="semicircular">Semicircular Dials</option>
-              </select>
-            </div>
-
             {assessments.length > 0 ? (
-              <LanguageDevelopmentCharts
-                assessments={viewMode === "dotmatrix" ? summedMonthlyRows : assessments}
-                viewMode={viewMode}
-                title={`Classroom Analysis ${viewMode === "dotmatrix" ? "- Year Overview" : ""}`}
-                contextSubtitle={
-                  viewMode === "dotmatrix"
-                    ? "Total (summed) WPM per category across this classroom's recordings"
-                    : "Average WPM per category across this classroom's recordings — markers use classroom averages"
-                }
-                dotMatrixSubtitle="Total WPM by month (summed across recordings)"
-                cohortThresholdsByCategory={viewMode === "semicircular" ? cohortStats : null}
+              <TalkMetricsDeck
+                assessments={assessments}
+                context="school"
+                role={isAdmin() ? "admin" : isCoachView ? "coach" : isParentView ? "parent" : "teacher"}
+                defaultPreset="this-month"
+                cohortThresholdsByCategory={cohortStats}
+                contextSubtitle="At School"
+                title="Classroom Language Analysis"
               />
             ) : (
               <div className="card bg-base-100 shadow-xl border border-dashed border-base-300">
@@ -654,6 +610,7 @@ const ClassroomHomePage = () => {
                           wordsPerMinute={rec.wordsPerMinute}
                           categoryWPM={rec.categoryWPM}
                           categoryWordCount={rec.categoryWordCount}
+                          languageFeatures={rec.languageFeatures}
                           transcript={rec.transcript || ""}
                           ragSegments={rec.ragSegments}
                           onDelete={onDelete}
@@ -673,6 +630,41 @@ const ClassroomHomePage = () => {
                 )}
               </div>
             </div>
+            )}
+
+            {isCoachView && !coachHasTranscriptAccess && assessments.length > 0 && (
+              <div className="card bg-base-100 shadow border border-base-200 mt-8">
+                <div className="card-body p-4 sm:p-5">
+                  <h2 className="font-bold text-lg mb-2">Recordings</h2>
+                  <p className="text-sm text-base-content/60 mb-3">
+                    Counts for each recording. The transcript text stays hidden on this access level.
+                  </p>
+                  <div className="space-y-3">
+                    {recordingPage.items.map((rec) => (
+                      <TranscriptRecordCard
+                        key={String(rec._id)}
+                        id={String(rec._id)}
+                        date={rec.date}
+                        activity={rec.activity}
+                        activityContext={rec.activityContext}
+                        durationSeconds={rec.durationSeconds}
+                        wordCount={rec.wordCount}
+                        wordsPerMinute={rec.wordsPerMinute}
+                        categoryWPM={rec.categoryWPM}
+                        categoryWordCount={rec.categoryWordCount}
+                        languageFeatures={rec.languageFeatures}
+                        hideTranscript
+                        transcript=""
+                      />
+                    ))}
+                    <TranscriptPager
+                      pageIndex={recordingPage.pageIndex}
+                      pageCount={recordingPage.pageCount}
+                      onPageChange={recordingPage.setPageIndex}
+                    />
+                  </div>
+                </div>
+              </div>
             )}
 
             {canDelete && !isReadOnlyView && (

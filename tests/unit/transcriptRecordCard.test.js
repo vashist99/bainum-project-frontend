@@ -357,3 +357,44 @@ describe("TranscriptRecordCard — RAG highlighting", () => {
         assert.match(html, /zzzzzz/);
     });
 });
+
+describe("TranscriptRecordCard — language feature strip", () => {
+    test("shows the four counts and keeps More detail closed", () => {
+        const html = render({
+            ...BASE_PROPS,
+            languageFeatures: {
+                uniqueWordCount: 12,
+                whQuestionCount: 3,
+                utteranceCount: 4,
+                meanUtteranceLength: 6.5,
+                varietyRatio: 0.42,
+                conjunctionCount: 2,
+                rareWordCount: 5,
+                genericPhraseCount: 1,
+            },
+        });
+        assert.match(html, /12 different words/);
+        assert.match(html, /3 why\/how questions/);
+        assert.match(html, /4 ideas/);
+        assert.match(html, /6.5 words per idea/);
+        assert.match(html, /More detail/);
+        assert.match(html, /flex-wrap/);
+        assert.doesNotMatch(html, /<details[^>]*\sopen/);
+    });
+
+    test("says language extras are unavailable when the payload is missing", () => {
+        const html = render(BASE_PROPS);
+        assert.match(html, /Language extras not available/);
+    });
+
+    test("keeps the strip and hides the transcript body", () => {
+        const html = render({
+            ...BASE_PROPS,
+            hideTranscript: true,
+            languageFeatures: { uniqueWordCount: 2, whQuestionCount: 1, utteranceCount: 1, meanUtteranceLength: 4 },
+        });
+        assert.match(html, /2 different words/);
+        assert.doesNotMatch(html, /dinosaur fossil/);
+        assert.doesNotMatch(html, /Click to expand transcript/);
+    });
+});

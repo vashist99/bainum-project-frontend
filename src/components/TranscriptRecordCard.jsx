@@ -10,6 +10,7 @@ import {
 } from "../utils/observationCard.js";
 import { previewWriteProps } from "../lib/viewAs.js";
 import InfoTip from "./InfoTip.jsx";
+import LanguageFeatureStrip from "./LanguageFeatureStrip.jsx";
 
 /**
  * Per-recording card used by classroom, child, and teacher profile pages.
@@ -28,6 +29,8 @@ export default function TranscriptRecordCard({
     categoryWPM,
     categoryWordCount,
     transcript,
+    languageFeatures,
+    hideTranscript = false,
     ragSegments,
     onDelete,
     observationNote,
@@ -87,6 +90,10 @@ export default function TranscriptRecordCard({
             key={id}
             data-testid="transcript-record-card"
             className="card bg-base-200 border border-base-300 group min-w-0 overflow-hidden"
+            open={hideTranscript ? false : undefined}
+            onToggle={(event) => {
+                if (hideTranscript) event.currentTarget.open = false;
+            }}
         >
             <summary className="p-3 sm:p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                 <div className="flex items-start gap-2 min-w-0">
@@ -141,12 +148,17 @@ export default function TranscriptRecordCard({
                                     <span className="badge badge-sm badge-ghost">WPM: N/A</span>
                                 )}
                             </div>
+                        <LanguageFeatureStrip features={languageFeatures} />
+                        {!hideTranscript && (
+                        <>
                         <p className="text-xs text-base-content/60 mt-1.5 group-open:hidden">
                             Click to expand transcript
                         </p>
                         <p className="text-xs text-base-content/60 mt-1.5 hidden group-open:block">
                             Click to collapse
                         </p>
+                        </>
+                        )}
                     </div>
                     {typeof onDelete === "function" && (
                         <button
@@ -166,6 +178,7 @@ export default function TranscriptRecordCard({
                 </div>
             </summary>
 
+            {!hideTranscript && (
             <div className="px-3 sm:px-4 pb-4">
                 <div className="bg-base-100 p-3 sm:p-4 rounded-lg border border-base-300 max-h-64 overflow-y-auto">
                     {hasRagHighlights ? (
@@ -270,6 +283,7 @@ export default function TranscriptRecordCard({
                     )}
                 </div>
             </div>
+            )}
 
             {commentsOpen && (
                 <div className="modal modal-open" role="dialog" aria-labelledby={`comments-title-${id}`}>

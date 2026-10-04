@@ -1,5 +1,35 @@
 import ExcelJS from "exceljs";
 import { formatObservationCommentsCell } from "./observationCard.js";
+import { activityBucket } from "../lib/talkMetrics.js";
+
+const LAYER1_COLUMNS = [
+    { header: "Different Words", key: "differentWords", width: 16 },
+    { header: "Word Variety (%)", key: "wordVariety", width: 16 },
+    { header: "Why/How Questions", key: "whyHow", width: 18 },
+    { header: "Ideas (Utterances)", key: "ideas", width: 18 },
+    { header: "Words per Idea", key: "wordsPerIdea", width: 16 },
+    { header: "Connecting Words", key: "connectingWords", width: 18 },
+    { header: "Content Words", key: "contentWords", width: 16 },
+    { header: "Big-Idea Phrases", key: "bigIdeaPhrases", width: 16 },
+    { header: "Activity Bucket", key: "activityBucket", width: 24 },
+];
+
+function layer1Cells(rec) {
+    const features = rec?.languageFeatures;
+    const context = rec?.activityContext === "home" ? "home" : "school";
+    const num = (value) => (features && value != null ? value : "");
+    return {
+        differentWords: num(features?.uniqueWordCount),
+        wordVariety: features?.varietyRatio == null ? "" : Math.round(features.varietyRatio * 100),
+        whyHow: num(features?.whQuestionCount),
+        ideas: num(features?.utteranceCount),
+        wordsPerIdea: num(features?.meanUtteranceLength),
+        connectingWords: num(features?.conjunctionCount),
+        contentWords: num(features?.rareWordCount),
+        bigIdeaPhrases: num(features?.genericPhraseCount),
+        activityBucket: activityBucket(rec?.activity, context),
+    };
+}
 
 const TWO_SHEET = "two-sheet";
 const SINGLE_SHEET = "single-sheet";
@@ -73,6 +103,7 @@ function buildTwoSheets(wb, recordings) {
         { header: "Literacy WPM", key: "literacyWpm", width: 12 },
         { header: "Language Words", key: "languageWords", width: 14 },
         { header: "Language WPM", key: "languageWpm", width: 12 },
+        ...LAYER1_COLUMNS,
         { header: "Comments", key: "comments", width: 40 },
     ];
 
@@ -106,6 +137,7 @@ function buildTwoSheets(wb, recordings) {
             literacyWpm: numeric(wpm?.literature),
             languageWords: numeric(cat?.language),
             languageWpm: numeric(wpm?.language),
+            ...layer1Cells(rec),
             comments: commentText(rec),
         });
 
@@ -143,6 +175,7 @@ function buildSingleSheet(wb, recordings) {
         { header: "Literacy WPM", key: "literacyWpm", width: 12 },
         { header: "Language Words", key: "languageWords", width: 14 },
         { header: "Language WPM", key: "languageWpm", width: 12 },
+        ...LAYER1_COLUMNS,
         { header: "Transcript", key: "transcript", width: 80 },
         { header: "Comments", key: "comments", width: 40 },
     ];
@@ -169,6 +202,7 @@ function buildSingleSheet(wb, recordings) {
             literacyWpm: numeric(wpm?.literature),
             languageWords: numeric(cat?.language),
             languageWpm: numeric(wpm?.language),
+            ...layer1Cells(rec),
             transcript: rec?.transcript || "",
             comments: commentText(rec),
         });

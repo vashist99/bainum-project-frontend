@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import AppLayout from "../components/AppLayout";
 import { ArrowLeft, User, UserRound, Calendar, Languages, Stethoscope, Users, School, ChevronDown, FileText, BookOpen, MessageCircle, Microscope, Brain, Download, Mail, Lock } from "lucide-react";
-import { LanguageDevelopmentCharts } from "../components/LanguageDevelopmentCharts";
+import TalkMetricsDeck from "../components/TalkMetricsDeck.jsx";
 import axios from "../lib/axios";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
@@ -41,13 +41,12 @@ const ChildDataPage = () => {
   const [loadingParentChildren, setLoadingParentChildren] = useState(false);
   const [loading, setLoading] = useState(true);
   const [allAssessments, setAllAssessments] = useState([]);
-  const [viewMode, setViewMode] = useState("dotmatrix"); // "dotmatrix" or "semicircular"
+  const [cohortThresholdsByCategory, setCohortThresholdsByCategory] = useState(null);
   /** Home view access state: parents get the full sharing state, staff their own status. */
   const [homeAccess, setHomeAccess] = useState(null);
   const [loadingHomeAccess, setLoadingHomeAccess] = useState(false);
   const [classmates, setClassmates] = useState([]);
   const [loadingClassmates, setLoadingClassmates] = useState(false);
-  const [cohortThresholdsByCategory, setCohortThresholdsByCategory] = useState(null);
   /** Teacher must have parent-approved access; until then show invite UI */
   const [teacherAccessDenied, setTeacherAccessDenied] = useState(false);
   const [childPreview, setChildPreview] = useState(null);
@@ -362,6 +361,11 @@ const ChildDataPage = () => {
     () => (Array.isArray(allAssessments) ? allAssessments : []),
     [allAssessments]
   );
+  const [rangedAssessments, setRangedAssessments] = useState(null);
+  const handleDeckFiltered = useCallback((rows) => {
+    setRangedAssessments(rows);
+  }, []);
+  const summaryRows = rangedAssessments ?? viewAssessments;
   const isStaffUser = user?.role === 'teacher' || user?.role === 'admin' || user?.role === 'coach';
   const staffHomeStatus = isStaffUser ? staffHomeStatusFrom(homeAccess) : null;
   /** Staff without a parent grant see the privacy gate instead of home data. */
@@ -378,25 +382,25 @@ const ChildDataPage = () => {
   // Get language development data from latest assessment
   // Average words per minute across all assessments with duration data
   const averageWPM = useMemo(() => {
-    const validWPM = (Array.isArray(viewAssessments) ? viewAssessments : [])
+    const validWPM = (Array.isArray(summaryRows) ? summaryRows : [])
       .map((a) => a?.wordsPerMinute)
       .filter((w) => w != null && !isNaN(w));
     if (validWPM.length === 0) return null;
     return validWPM.reduce((s, w) => s + w, 0) / validWPM.length;
-  }, [viewAssessments]);
+  }, [summaryRows]);
 
   // Average WPM per category (science, social, literature, language)
   const averageCategoryWPM = useMemo(() => {
     const cats = ['science', 'social', 'literature', 'language'];
     const result = {};
     cats.forEach((cat) => {
-      const valid = (Array.isArray(viewAssessments) ? viewAssessments : [])
+      const valid = (Array.isArray(summaryRows) ? summaryRows : [])
         .map((a) => a?.categoryWPM?.[cat])
         .filter((w) => w != null && !isNaN(w));
       result[cat] = valid.length > 0 ? valid.reduce((s, w) => s + w, 0) / valid.length : null;
     });
     return result;
-  }, [viewAssessments]);
+  }, [summaryRows]);
 
   // Calculate age in months from date of birth
   const calculateAgeInMonths = (dateOfBirth) => {
@@ -522,18 +526,6 @@ const ChildDataPage = () => {
                   )}
                 </select>
               </div>
-            )}
-            {showFullProfile && (
-            <div className="form-control">
-              <select
-                className="select select-bordered select-primary"
-                value={viewMode}
-                onChange={(e) => setViewMode(e.target.value)}
-              >
-                <option value="dotmatrix">Dot Matrix</option>
-                <option value="semicircular">Semicircular Dials</option>
-              </select>
-            </div>
             )}
           </div>
         </div>
@@ -775,13 +767,15 @@ const ChildDataPage = () => {
             </span>
           </div>
         ) : (
-          <LanguageDevelopmentCharts
+          <TalkMetricsDeck
             assessments={viewAssessments}
-            viewMode={viewMode}
-            title={`Language Development Analysis ${viewMode === "dotmatrix" ? "- Year Overview" : ""}`}
-            contextSubtitle="At Home"
-            showWordScores
+            context="home"
+            role="parent"
+            defaultPreset="last-four-weeks"
             cohortThresholdsByCategory={cohortThresholdsByCategory}
+            contextSubtitle="At Home"
+            title="Home language analysis"
+            onFilteredChange={handleDeckFiltered}
           />
         )}
 
@@ -819,7 +813,7 @@ const ChildDataPage = () => {
                   </div>
                   <p className="text-sm text-base-content/60 mt-1">
                     {averageWPM != null
-                      ? `Average across ${viewAssessments.filter((a) => a?.wordsPerMinute != null).length} recording(s)`
+                      ? `Average across ${summaryRows.filter((a) => a?.wordsPerMinute != null).length} recording(s) in these dates`
                       : 'WPM appears when assessments include duration data (e.g. from external ingest).'}
                   </p>
                 </div>
@@ -937,6 +931,7 @@ const ChildDataPage = () => {
                       wordsPerMinute={assessment.wordsPerMinute}
                       categoryWPM={assessment.categoryWPM}
                       categoryWordCount={assessment.categoryWordCount}
+                      languageFeatures={assessment.languageFeatures}
                       transcript={assessment.transcript}
                       ragSegments={assessment.ragSegments}
                       onDelete={

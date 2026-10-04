@@ -25,27 +25,27 @@ describe("TeacherClassroomTalkSections", () => {
                 _id: "sun",
                 classroomId: "room-sun",
                 classroomName: "Sunflowers",
-                date: "2026-03-02",
+                date: "2026-10-02",
                 transcript: "Sun talk",
             },
             {
                 _id: "bug",
                 classroomId: "room-bug",
                 classroomName: "Butterflies",
-                date: "2026-04-01",
+                date: "2026-10-03",
                 transcript: "Bug talk",
             },
             {
                 _id: "loose",
                 classroomId: null,
-                date: "2026-01-15",
+                date: "2026-10-04",
                 transcript: "Legacy talk",
             },
         ]);
 
         assert.match(html, /Language Development Analysis - Year Overview/);
         assert.equal((html.match(/Language Development Analysis/g) || []).length, 1);
-        assert.match(html, /Showing 3 of 3/);
+        assert.match(html, /Showing 1–3 of 3/);
         assert.match(html, /Sun talk/);
         assert.match(html, /Bug talk/);
         assert.match(html, /Legacy talk/);

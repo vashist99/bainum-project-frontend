@@ -8,7 +8,6 @@ export default function CoachPerformanceSection({
     emptyTeachersMessage,
     onLoaded,
 }) {
-    const [viewMode, setViewMode] = useState("dotmatrix");
     const [payload, setPayload] = useState(null);
     const [loading, setLoading] = useState(Boolean(enabled && coachId));
     const [error, setError] = useState("");
@@ -74,8 +73,6 @@ export default function CoachPerformanceSection({
             assessments={payload?.assessments || []}
             assignedTeacherCount={payload?.assignedTeacherCount || 0}
             emptyTeachersMessage={emptyTeachersMessage}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
         />
     );
 }

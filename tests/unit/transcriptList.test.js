@@ -24,7 +24,7 @@ describe("TranscriptList — date filter chrome", () => {
         assert.match(html, /data-testid="transcript-date-to"/);
         assert.match(html, /aria-label="Filter transcripts from date"/);
         assert.match(html, /aria-label="Filter transcripts to date"/);
-        assert.match(html, /Showing 2 of 2/);
+        assert.match(html, /Showing 1–2 of 2/);
         assert.match(html, /First recording/);
         assert.match(html, /Second recording/);
         assert.doesNotMatch(html, /Clear dates/);
@@ -36,5 +36,26 @@ describe("TranscriptList — date filter chrome", () => {
             renderItem: (item) => React.createElement("p", { key: item.id }, item.label),
         });
         assert.doesNotMatch(html, />Clear dates</);
+        assert.doesNotMatch(html, /data-testid="transcript-pager"/);
+    });
+
+    test("shows the first four cards and a pager when there are five recordings", () => {
+        const items = ["One", "Two", "Three", "Four", "Five"].map((label, index) => ({
+            id: String(index),
+            date: new Date(2026, 3, index + 1, 12),
+            label,
+        }));
+        const html = render({
+            items,
+            renderItem: (item) => React.createElement("p", { key: item.id }, item.label),
+        });
+        assert.match(html, /Showing 1–4 of 5/);
+        assert.match(html, /One/);
+        assert.match(html, /Four/);
+        assert.doesNotMatch(html, /Five/);
+        assert.match(html, /data-testid="transcript-pager"/);
+        assert.match(html, /Page 1 of 2/);
+        assert.match(html, /<button[^>]*disabled[^>]*>Previous<\/button>/);
+        assert.match(html, /<button(?![^>]*disabled)[^>]*>Next<\/button>/);
     });
 });

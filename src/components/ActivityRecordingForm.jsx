@@ -20,6 +20,7 @@ import { CUSTOM_ACTIVITY_VALUE } from "../utils/activities.js";
 import { getLocationsForRole, getDefaultLocationForRole } from "../utils/locations.js";
 import VettedLabelSelect from "./VettedLabelSelect.jsx";
 import LiveAudioCapture from "./LiveAudioCapture.jsx";
+import LanguageFeatureStrip from "./LanguageFeatureStrip.jsx";
 import useAudioRecorder, {
   MAX_FILE_BYTES,
   fileFromRecordingBlob,
@@ -400,6 +401,10 @@ export default function ActivityRecordingForm({
                   })}
                 </div>
               </div>
+              <LanguageFeatureStrip
+                features={assessment.languageFeatures}
+                unavailableText="Language extras unavailable for this file."
+              />
             </div>
           )}
           <div className="alert alert-info mb-4 py-2 text-sm">

@@ -74,6 +74,52 @@ export const HELP_TEXT = Object.freeze({
         "Add a comment on this recording. Anyone who can see the transcript can post. Comments show the author and time, and they cannot be edited or deleted. Comments are included when you download Excel.",
     "control.hideObservation":
         "Only the person who recorded this session can hide it. Hidden recordings disappear from everyone else's lists, charts, and Excel — including administrators.",
+    "metric.dateRange":
+        "Pick the dates you want. The chart, tables, and cards on this page all use those same dates.",
+    "metric.chartType":
+        "Dot Matrix and the dials show words per minute. Data Matrix is a line chart. You choose what the lines measure.",
+    "metric.picker":
+        "Choose what the lines measure. Words per minute is how much talk. The other choices show different words and questions.",
+    "metric.dataMatrix":
+        "Each line is one kind of talk: Science, Social, Language, or Literature. Each point is one recording. This describes the talk in the room, not a score for one child.",
+    "metric.homeTrend":
+        "Each week is home talk only. The lines are kinds of talk. This is a trend, not a red or green score.",
+    "metric.dotMatrix":
+        "Each month shows words per minute for the dates you picked.",
+    "metric.dials":
+        "The needle is words per minute for the dates you picked. The colors compare that number with other classrooms. Questions and different words do not use this dial.",
+    "metric.contentBucket":
+        "These rows are the kinds of talk in the recordings you picked. A higher number means more of that kind of talk.",
+    "metric.talkByActivity":
+        "Each recording already has an activity, like story time or lunch. This table groups those activities so you can compare them.",
+    "metric.alphabetKnowledge":
+        "This compares letter-and-sound recordings with recordings about books, writing, math, science, and pretend play. It only counts what you recorded.",
+    "metric.storyTime":
+        "These numbers come only from book and read-aloud recordings in the dates you picked.",
+    "metric.everyday":
+        "Meals, line-up, and care times can be short teaching moments. This compares those recordings with the rest of what you captured.",
+    "metric.instructionalMix":
+        "This shows how many recordings were lesson time and how many were meals, routines, or rest. It is about the recordings, not the whole day.",
+    "metric.sessionStrip":
+        "These numbers describe the words in this recording. They are not a grade.",
+    "metric.differentWords":
+        "How many different words were used. A lot of words with only a few different ones means the same words were repeated.",
+    "metric.whyHow":
+        "Questions that start with why, how, what, who, where, when, or which. Yes or no questions are not counted. This is the whole recording.",
+    "metric.ideas":
+        "How many sentence-like pieces were in the recording.",
+    "metric.wordsPerIdea":
+        "About how many words were in each sentence.",
+    "metric.wordVariety":
+        "The share of words that were not repeats. A low percent means most words were said more than once.",
+    "metric.connectingWords":
+        "Words that join ideas, such as and, but, because, and if.",
+    "metric.contentWords":
+        "Less common words, not everyday words like the or said.",
+    "metric.bigIdeaPhrases":
+        "Talk about a kind of thing, such as “a ladybug is” or “triangles have.” This is a rough count.",
+    "metric.coachScan":
+        "For the dates you picked: how many recordings, how often why or how questions came up, how many different words per minute, and the activity recorded most. Rooms are not ranked.",
 });
 
 /** Look up help copy for a key; returns null for unknown keys. */

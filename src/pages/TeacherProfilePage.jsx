@@ -24,7 +24,6 @@ const TeacherProfilePage = () => {
   const [teacher, setTeacher] = useState(null);
   const [assessments, setAssessments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState("dotmatrix");
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [cohortThresholdsByCategory, setCohortThresholdsByCategory] = useState(null);
   const [downloadingXlsx, setDownloadingXlsx] = useState(false);
@@ -197,16 +196,6 @@ const TeacherProfilePage = () => {
             My Classroom Talk Data
           </h1>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <div className="form-control">
-              <select
-                className="select select-bordered select-primary"
-                value={viewMode}
-                onChange={(e) => setViewMode(e.target.value)}
-              >
-                <option value="dotmatrix">Dot Matrix</option>
-                <option value="semicircular">Semicircular Dials</option>
-              </select>
-            </div>
             <button onClick={() => setShowUploadModal(true)} className="btn btn-primary gap-2">
               <Mic className="w-5 h-5" />
               Record
@@ -245,7 +234,6 @@ const TeacherProfilePage = () => {
 
         <TeacherClassroomTalkSections
           assessments={assessments}
-          viewMode={viewMode}
           cohortThresholdsByCategory={cohortThresholdsByCategory}
           emptyTranscriptMessage="No transcripts yet. Upload a classroom recording to get started."
           headerAction={
@@ -277,6 +265,7 @@ const TeacherProfilePage = () => {
               wordsPerMinute={assessment.wordsPerMinute}
               categoryWPM={assessment.categoryWPM}
               categoryWordCount={assessment.categoryWordCount}
+              languageFeatures={assessment.languageFeatures}
               transcript={assessment.transcript}
               ragSegments={assessment.ragSegments}
               onDelete={() => handleDeleteTeacherAssessment(assessment._id)}

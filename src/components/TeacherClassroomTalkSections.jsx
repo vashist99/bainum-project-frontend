@@ -1,5 +1,5 @@
 import { FileText } from "lucide-react";
-import { LanguageDevelopmentCharts } from "./LanguageDevelopmentCharts";
+import TalkMetricsDeck from "./TalkMetricsDeck.jsx";
 import TranscriptList from "./TranscriptList.jsx";
 
 function transcriptsWithText(recordings) {
@@ -12,7 +12,6 @@ function transcriptsWithText(recordings) {
  */
 export default function TeacherClassroomTalkSections({
     assessments,
-    viewMode,
     cohortThresholdsByCategory,
     headerAction = null,
     emptyTranscriptMessage = "No transcripts yet for this teacher.",
@@ -25,13 +24,14 @@ export default function TeacherClassroomTalkSections({
 
     return (
         <>
-            <LanguageDevelopmentCharts
+            <TalkMetricsDeck
                 assessments={recordings}
-                viewMode={viewMode}
-                title="Language Development Analysis - Year Overview"
-                contextSubtitle="At School"
+                context="school"
+                role="teacher"
+                defaultPreset="this-month"
                 cohortThresholdsByCategory={cohortThresholdsByCategory}
-                showWordScores
+                contextSubtitle="At School"
+                title=""
             />
 
             <div className="card bg-base-100 shadow-xl mb-6">

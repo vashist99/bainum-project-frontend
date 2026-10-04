@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { filterItemsByDateRange } from "../utils/transcriptDateRange.js";
+import TranscriptPager, { useTranscriptPage } from "./TranscriptPager.jsx";
 
 /**
  * Date-range filter + list shell for saved transcripts.
@@ -18,8 +19,12 @@ export default function TranscriptList({
         () => filterItemsByDateRange(items, from, to, getDate),
         [items, from, to, getDate]
     );
+    const page = useTranscriptPage(filtered, `${from}|${to}`);
 
     const hasFilter = Boolean(from || to);
+    const status = filtered.length === 0
+        ? `Showing 0 of ${items.length}`
+        : `Showing ${page.start}–${page.end} of ${filtered.length}`;
 
     return (
         <div className="space-y-4 min-w-0">
@@ -65,7 +70,7 @@ export default function TranscriptList({
                     </button>
                 )}
                 <p className="text-xs text-base-content/60 min-[520px]:ml-auto min-[520px]:pb-2">
-                    Showing {filtered.length} of {items.length}
+                    {status}
                 </p>
             </div>
 
@@ -73,7 +78,12 @@ export default function TranscriptList({
                 <p className="text-sm text-base-content/60 py-2">{emptyFilteredMessage}</p>
             ) : (
                 <div className="space-y-4 min-w-0">
-                    {filtered.map((item) => renderItem(item))}
+                    {page.items.map((item) => renderItem(item))}
+                    <TranscriptPager
+                        pageIndex={page.pageIndex}
+                        pageCount={page.pageCount}
+                        onPageChange={page.setPageIndex}
+                    />
                 </div>
             )}
         </div>
