@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { filterItemsByDateRange } from "../utils/transcriptDateRange.js";
-import TranscriptPager, { useTranscriptPage } from "./TranscriptPager.jsx";
+import TranscriptPager from "./TranscriptPager.jsx";
+import { useTranscriptPage } from "../hooks/useTranscriptPage.js";
 
 /**
  * Date-range filter + list shell for saved transcripts.
