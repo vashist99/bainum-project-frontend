@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CONTENT_CATEGORIES, CONTENT_COLORS, CONTENT_LABELS } from "../lib/talkMetrics.js";
 import { nextHighlight, seriesStyle } from "../lib/dataMatrixSeries.js";
+import { categorySegments, chartLayout } from "../lib/dataMatrixLayout.js";
 
 function niceMax(value) {
     if (!Number.isFinite(value) || value <= 0) return 1;
@@ -10,60 +11,24 @@ function niceMax(value) {
     return Math.max(step, Math.ceil(padded / step) * step);
 }
 
-function segments(series) {
-    const parts = [];
-    let current = [];
-    series.forEach((value, index) => {
-        if (value == null || Number.isNaN(value)) {
-            if (current.length) parts.push(current);
-            current = [];
-            return;
-        }
-        current.push({ index, value });
-    });
-    if (current.length) parts.push(current);
-    return parts;
-}
-
 export default function DataMatrixChart({ points = [], metricLabel = "Words per minute" }) {
     const [selected, setSelected] = useState(null);
-    const width = 980;
-    const height = 300;
-    const pad = { l: 56, r: 24, t: 72, b: 42 };
-    const plotW = width - pad.l - pad.r;
-    const plotH = height - pad.t - pad.b;
+    const layout = chartLayout(points.map((point) => point.label));
+    const { width, height, pad, plotW, plotH, xAt, dateLabels } = layout;
     const drawOrder = selected
         ? [...CONTENT_CATEGORIES.filter((category) => category !== selected), selected]
         : CONTENT_CATEGORIES;
-    const labels = points.map((point) => point.label);
-    const n = Math.max(labels.length, 1);
-    const values = points.flatMap((point) => CONTENT_CATEGORIES.map((category) => point.values?.[category])).filter((value) => value != null && !Number.isNaN(value));
+    const values = points.flatMap((point) => CONTENT_CATEGORIES.map((category) => point.values?.[category])).filter((value) => value != null && Number.isFinite(Number(value)));
     const yMax = niceMax(Math.max(0, ...values));
     const yStep = yMax <= 3 ? 0.5 : yMax <= 12 ? 2 : Math.max(1, Math.round(yMax / 4));
     const ticks = [];
     for (let value = 0; value <= yMax + 1e-9; value += yStep) ticks.push(Math.round(value * 1000) / 1000);
-    const xAt = (index) => pad.l + (n === 1 ? plotW / 2 : (index / (n - 1)) * plotW);
     const yAt = (value) => pad.t + plotH - (value / yMax) * plotH;
-    const labelIndexes = new Set();
-    if (labels.length > 0) {
-        labelIndexes.add(0);
-        const minGap = 92;
-        for (let index = 1; index < labels.length; index += 1) {
-            const last = [...labelIndexes].at(-1);
-            const isLast = index === labels.length - 1;
-            if (xAt(index) - xAt(last) >= (isLast ? 64 : minGap)) labelIndexes.add(index);
-            else if (isLast && labelIndexes.size > 1) {
-                const previous = [...labelIndexes].at(-1);
-                if (previous !== 0) labelIndexes.delete(previous);
-                labelIndexes.add(index);
-            }
-        }
-    }
 
     return (
         <div className="min-w-0">
         <div className="overflow-x-auto max-w-full min-w-0">
-        <svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full min-w-[36rem]" role="img" aria-label={`Data Matrix for CATTAC — ${metricLabel}`}>
+        <svg viewBox={`0 0 ${width} ${height}`} style={{ minWidth: width }} className="h-auto w-full" role="img" aria-label={`Data Matrix for CATTAC — ${metricLabel}`}>
             <rect width={width} height={height} fill="#ffffff" />
             <text x="8" y="34" fill="#1F1F1F" fontSize="28" fontFamily="Calibri, Segoe UI, sans-serif">Data Matrix for CATTAC</text>
             <text x="8" y="58" textAnchor="start" fill="#757575" fontSize="14" fontFamily="Calibri, Segoe UI, sans-serif">{metricLabel}</text>
@@ -77,9 +42,9 @@ export default function DataMatrixChart({ points = [], metricLabel = "Words per 
                 const style = seriesStyle(category, selected);
                 return (
                 <g key={category} opacity={style.opacity}>
-                    {segments(points.map((point) => point.values?.[category] ?? null)).map((part, partIndex) => (
-                        part.length === 1 ? (
-                            <circle key={`${category}-${partIndex}`} cx={xAt(part[0].index)} cy={yAt(part[0].value)} r={selected === category ? 5 : 3.5} fill={CONTENT_COLORS[category]} />
+                    {categorySegments(points.map((point) => point.values?.[category] ?? null)).map((segment, partIndex) => (
+                        segment.kind === "marker" ? (
+                            <circle key={`${category}-${partIndex}`} cx={xAt(segment.points[0].index)} cy={yAt(segment.points[0].value)} r={selected === category ? 5 : 3.5} fill={CONTENT_COLORS[category]} />
                         ) : (
                             <polyline
                                 key={`${category}-${partIndex}`}
@@ -88,17 +53,16 @@ export default function DataMatrixChart({ points = [], metricLabel = "Words per 
                                 strokeWidth={style.strokeWidth}
                                 strokeLinejoin="round"
                                 strokeLinecap="round"
-                                points={part.map((item) => `${xAt(item.index)},${yAt(item.value)}`).join(" ")}
+                                strokeDasharray={segment.kind === "dotted" ? "7 6" : undefined}
+                                points={segment.points.map((item) => `${xAt(item.index)},${yAt(item.value)}`).join(" ")}
                             />
                         )
                     ))}
                 </g>
                 );
             })}
-            {labels.map((label, index) => (
-                labelIndexes.has(index) ? (
-                    <text key={`${label}-${index}`} x={xAt(index)} y={pad.t + plotH + 20} textAnchor="middle" fill="#595959" fontSize="13" fontFamily="Calibri, Segoe UI, sans-serif">{label}</text>
-                ) : null
+            {dateLabels.map((label) => (
+                <text key={`${label.text}-${label.index}`} x={label.x} y={pad.t + plotH + 22} textAnchor={label.anchor} fill="#595959" fontSize="13" fontFamily="Calibri, Segoe UI, sans-serif">{label.text}</text>
             ))}
         </svg>
         </div>

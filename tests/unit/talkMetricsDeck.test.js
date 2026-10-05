@@ -1,6 +1,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { labelSpan } from "../../src/lib/dataMatrixLayout.js";
 import { helpFor } from "../../src/lib/helpText.js";
 import { buildDeckModel } from "../../src/lib/talkMetrics.js";
 
@@ -85,8 +86,28 @@ const DECK_ROWS = [
     }),
 ];
 
+function dateTexts(html) {
+    return [...html.matchAll(/<text x="([\d.]+)" y="[\d.]+" text-anchor="(start|middle|end)"[^>]*>(\d{4}-\d{2}-\d{2})<\/text>/g)];
+}
+
+function assertDatesInside(html) {
+    const width = Number(html.match(/viewBox="0 0 ([\d.]+)/)[1]);
+    const dates = dateTexts(html);
+    assert.ok(dates.length >= 2);
+    for (const match of dates) {
+        const span = labelSpan({ x: Number(match[1]), anchor: match[2], text: match[3] });
+        assert.ok(span.left >= -0.01, match[3]);
+        assert.ok(span.right <= width + 0.01, match[3]);
+    }
+    for (let index = 1; index < dates.length; index += 1) {
+        const previous = labelSpan({ x: Number(dates[index - 1][1]), anchor: dates[index - 1][2], text: dates[index - 1][3] });
+        const current = labelSpan({ x: Number(dates[index][1]), anchor: dates[index][2], text: dates[index][3] });
+        assert.ok(current.left >= previous.right - 0.01);
+    }
+}
+
 describe("Data Matrix chart", () => {
-    test("draws the title and leaves a gap where a category has no talk", () => {
+    test("draws a dotted break for a skipped value and keeps dates inside the chart", () => {
         const empty = renderToStaticMarkup(React.createElement(DataMatrixChart, { points: [], metricLabel: "Words per minute" }));
         assert.match(empty, /Data Matrix for CATTAC/);
         assert.match(empty, /Words per minute/);
@@ -100,12 +121,36 @@ describe("Data Matrix chart", () => {
                 { label: "2026-10-04", values: { science: 4, social: 2, language: 1, literature: 1 } },
             ],
         }));
-        assert.equal((gapped.match(/<polyline /g) || []).length, 4);
-        assert.match(gapped, /<circle /);
+        assert.equal((gapped.match(/<polyline /g) || []).length, 5);
+        assert.equal((gapped.match(/stroke-dasharray="7 6"/g) || []).length, 1);
+        assert.doesNotMatch(gapped, /<circle /);
         assert.equal((gapped.match(/aria-pressed="false"/g) || []).length, 4);
         assert.doesNotMatch(gapped, /aria-pressed="true"/);
         assert.equal((gapped.match(/opacity="1"/g) || []).length, 4);
-        assert.equal((gapped.match(/stroke-width="2\.8"/g) || []).length, 4);
+        assert.equal((gapped.match(/stroke-width="2\.8"/g) || []).length, 5);
+        assert.match(gapped, /text-anchor="start"[^>]*>2026-10-01</);
+        assert.match(gapped, /text-anchor="end"[^>]*>2026-10-04</);
+        assertDatesInside(gapped);
+        const legendAt = gapped.lastIndexOf("Science");
+        const scrollAt = gapped.indexOf("overflow-x-auto");
+        assert.ok(scrollAt !== -1 && legendAt > scrollAt);
+    });
+
+    test("a long range is wider than the default chart and still shows the end dates", () => {
+        const points = Array.from({ length: 40 }, (_, index) => ({
+            label: `2026-03-${String((index % 28) + 1).padStart(2, "0")}`,
+            values: { science: index + 1, social: 2, language: 1, literature: 1 },
+        }));
+        const html = renderToStaticMarkup(React.createElement(DataMatrixChart, { points, metricLabel: "Words per minute" }));
+        const width = Number(html.match(/viewBox="0 0 ([\d.]+)/)[1]);
+        assert.ok(width > 980);
+        assert.match(html, new RegExp(`min-width:${width}px`));
+        assert.match(html, /overflow-x-auto/);
+        const last = points.at(-1).label;
+        assert.match(html, /text-anchor="start"[^>]*>2026-03-01</);
+        assert.match(html, new RegExp(`text-anchor="end"[^>]*>${last}<`));
+        assertDatesInside(html);
+        assert.doesNotMatch(html, /stroke-dasharray/);
     });
 });
 
