@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { CONTENT_CATEGORIES, CONTENT_COLORS, CONTENT_LABELS } from "../lib/talkMetrics.js";
+import { nextHighlight, seriesStyle } from "../lib/dataMatrixSeries.js";
 
 function niceMax(value) {
     if (!Number.isFinite(value) || value <= 0) return 1;
@@ -24,11 +26,15 @@ function segments(series) {
 }
 
 export default function DataMatrixChart({ points = [], metricLabel = "Words per minute" }) {
+    const [selected, setSelected] = useState(null);
     const width = 980;
     const height = 300;
     const pad = { l: 56, r: 24, t: 72, b: 42 };
     const plotW = width - pad.l - pad.r;
     const plotH = height - pad.t - pad.b;
+    const drawOrder = selected
+        ? [...CONTENT_CATEGORIES.filter((category) => category !== selected), selected]
+        : CONTENT_CATEGORIES;
     const labels = points.map((point) => point.label);
     const n = Math.max(labels.length, 1);
     const values = points.flatMap((point) => CONTENT_CATEGORIES.map((category) => point.values?.[category])).filter((value) => value != null && !Number.isNaN(value));
@@ -67,17 +73,19 @@ export default function DataMatrixChart({ points = [], metricLabel = "Words per 
                     <text x={pad.l - 10} y={yAt(tick) + 4} textAnchor="end" fill="#757575" fontSize="12" fontFamily="Calibri, Segoe UI, sans-serif">{tick}</text>
                 </g>
             ))}
-            {CONTENT_CATEGORIES.map((category) => (
-                <g key={category}>
+            {drawOrder.map((category) => {
+                const style = seriesStyle(category, selected);
+                return (
+                <g key={category} opacity={style.opacity}>
                     {segments(points.map((point) => point.values?.[category] ?? null)).map((part, partIndex) => (
                         part.length === 1 ? (
-                            <circle key={`${category}-${partIndex}`} cx={xAt(part[0].index)} cy={yAt(part[0].value)} r="3.5" fill={CONTENT_COLORS[category]} />
+                            <circle key={`${category}-${partIndex}`} cx={xAt(part[0].index)} cy={yAt(part[0].value)} r={selected === category ? 5 : 3.5} fill={CONTENT_COLORS[category]} />
                         ) : (
                             <polyline
                                 key={`${category}-${partIndex}`}
                                 fill="none"
                                 stroke={CONTENT_COLORS[category]}
-                                strokeWidth="2.8"
+                                strokeWidth={style.strokeWidth}
                                 strokeLinejoin="round"
                                 strokeLinecap="round"
                                 points={part.map((item) => `${xAt(item.index)},${yAt(item.value)}`).join(" ")}
@@ -85,7 +93,8 @@ export default function DataMatrixChart({ points = [], metricLabel = "Words per 
                         )
                     ))}
                 </g>
-            ))}
+                );
+            })}
             {labels.map((label, index) => (
                 labelIndexes.has(index) ? (
                     <text key={`${label}-${index}`} x={xAt(index)} y={pad.t + plotH + 20} textAnchor="middle" fill="#595959" fontSize="13" fontFamily="Calibri, Segoe UI, sans-serif">{label}</text>
@@ -93,13 +102,24 @@ export default function DataMatrixChart({ points = [], metricLabel = "Words per 
             ))}
         </svg>
         </div>
-        <ul className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm">
-            {CONTENT_CATEGORIES.map((category) => (
-                <li key={category} className="inline-flex items-center gap-1.5 font-semibold">
-                    <span className="inline-block h-0.5 w-4" style={{ background: CONTENT_COLORS[category] }} />
-                    {CONTENT_LABELS[category]}
+        <ul className="mt-2 flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm">
+            {CONTENT_CATEGORIES.map((category) => {
+                const style = seriesStyle(category, selected);
+                return (
+                <li key={category}>
+                    <button
+                        type="button"
+                        aria-pressed={selected === category}
+                        className="inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-md px-1.5 font-semibold"
+                        style={{ opacity: style.opacity }}
+                        onClick={() => setSelected((current) => nextHighlight(current, category))}
+                    >
+                        <span className="inline-block h-0.5 w-4 shrink-0" style={{ background: CONTENT_COLORS[category] }} />
+                        {CONTENT_LABELS[category]}
+                    </button>
                 </li>
-            ))}
+                );
+            })}
         </ul>
         </div>
     );

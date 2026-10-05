@@ -1,5 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { helpFor } from "../../src/lib/helpText.js";
 import { buildDeckModel } from "../../src/lib/talkMetrics.js";
 
@@ -101,6 +102,10 @@ describe("Data Matrix chart", () => {
         }));
         assert.equal((gapped.match(/<polyline /g) || []).length, 4);
         assert.match(gapped, /<circle /);
+        assert.equal((gapped.match(/aria-pressed="false"/g) || []).length, 4);
+        assert.doesNotMatch(gapped, /aria-pressed="true"/);
+        assert.equal((gapped.match(/opacity="1"/g) || []).length, 4);
+        assert.equal((gapped.match(/stroke-width="2\.8"/g) || []).length, 4);
     });
 });
 
@@ -151,5 +156,18 @@ describe("Talk metrics deck date range", () => {
         assert.match(html, /lesson recordings/);
         assert.match(html, /Alphabet vs knowledge/);
         assert.match(html, /Everyday moments/);
+    });
+
+    test("Dot Matrix and the dials do not use the category legend", () => {
+        const dot = renderToStaticMarkup(React.createElement(TalkMetricsDeck, {
+            assessments: DECK_ROWS,
+            initialView: "dotmatrix",
+            role: "teacher",
+        }));
+        assert.doesNotMatch(dot, /aria-pressed/);
+        assert.match(dot, /Language Development Analysis - Year Overview/);
+        const dials = readFileSync(new URL("../../src/components/LanguageDevelopmentCharts.jsx", import.meta.url), "utf8");
+        assert.doesNotMatch(dials, /aria-pressed/);
+        assert.doesNotMatch(dials, /Data Matrix for CATTAC/);
     });
 });
